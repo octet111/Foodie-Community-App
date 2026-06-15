@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>フーディコミュニティアプリ ワイヤーフレーム v0.4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#3A4862;          /* 墨藍：アプリ背景 */
+  --card:#39465F;        /* カード面 */
+  --card-2:#44526F;      /* 浮き面（モーダル・強調） */
+  --line:#50607C;        /* 罫線 */
+  --brass:#C2AB70;       /* 真鍮：細部のみ */
+  --txt:#ECEAE4;         /* 本文 */
+  --txt-2:#B8BFCC;       /* 補助 */
+  --shu:#D9482B;         /* 朱：落款・未払いのみ */
+  --green:#5FAE85;       /* 募集中 */
+  --body-font:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  --display-font:"Shippori Mincho","Hiragino Mincho ProN",serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#242F45;font-family:var(--body-font);color:var(--txt);padding:32px 16px;-webkit-font-smoothing:antialiased}
+h1{font-family:var(--display-font);font-size:22px;letter-spacing:.08em;margin-bottom:4px;color:#F2F0E9}
+.sub{color:#959DAF;font-size:12px;margin-bottom:28px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:28px;max-width:1200px;margin:0 auto}
+.frame-wrap{display:flex;flex-direction:column;gap:8px}
+.screen-label{font-size:12px;color:#959DAF;letter-spacing:.08em}
+.screen-label b{color:#C9CFDB;font-weight:700;margin-right:6px}
+.phone{background:var(--bg);border:1px solid #4A5874;border-radius:22px;overflow:hidden;box-shadow:0 12px 32px rgba(0,0,0,.5);display:flex;flex-direction:column;min-height:660px}
+/* 共通ヘッダー */
+.hd{background:rgba(16,19,25,.96);border-bottom:1px solid var(--line);padding:13px 16px;display:flex;align-items:center;gap:10px}
+.logo{width:28px;height:28px;border-radius:6px;border:1px solid var(--brass);color:var(--brass);font-family:var(--display-font);font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cname{font-family:var(--display-font);font-size:15px;letter-spacing:.14em;flex:1;color:#F2F0E9}
+.bell{position:relative;width:22px;height:22px;border:1.5px solid var(--txt-2);border-radius:50% 50% 4px 4px}
+.bell::after{content:"3";position:absolute;top:-7px;right:-8px;background:var(--shu);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px}
+.ava{width:24px;height:24px;border-radius:50%;background:#5D6B89;margin-left:8px}
+.body{flex:1;padding:14px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+/* 落款バッジ */
+.rarity{display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--shu);color:#E8694F;font-weight:600;font-size:10px;letter-spacing:.14em;padding:3px 7px;border-radius:3px;background:rgba(217,72,43,.08);font-family:var(--display-font)}
+/* バッジ・ボタン */
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.05em}
+.b-open{background:rgba(95,174,133,.14);color:var(--green)}
+.b-closed{background:#4A5874;color:#9BA3B5}
+.btn{display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;border-radius:8px;padding:9px 14px;border:none;letter-spacing:.04em}
+.btn-p{background:#E9E6DD;color:#15181F}
+.btn-o{background:transparent;color:var(--txt);border:1px solid #3B4254}
+.btn-d{background:#3B4862;color:#8E96AB}
+.btn-sm{padding:6px 11px;font-size:11px}
+/* カード */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.thumb{height:74px;border-radius:8px;background:linear-gradient(135deg,#4F5E7B,#3A4862);position:relative;margin-bottom:9px}
+.thumb span{position:absolute;bottom:6px;left:8px;font-size:9px;color:#AEB4BF;background:rgba(10,12,16,.7);padding:2px 6px;border-radius:4px}
+.ttl{font-weight:700;font-size:14px;line-height:1.4;color:#F2F0E9}
+.t-min{font-family:var(--display-font);letter-spacing:.04em;font-weight:600}
+.meta{font-size:11px;color:var(--txt-2);margin-top:3px;line-height:1.65}
+.row{display:flex;align-items:center;gap:8px}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cap{font-size:11px;color:#B8BDC8;font-weight:500}
+/* セグメント */
+.seg{display:flex;background:#34415A;border:1px solid var(--line);border-radius:9px;padding:3px;font-size:12px;font-weight:700}
+.seg div{flex:1;text-align:center;padding:7px 0;border-radius:7px;color:#959DAF}
+.seg .on{background:#4E5D7C;color:#F2F0E9}
+/* 下部タブ */
+.tabbar{display:flex;border-top:1px solid var(--line);background:#323F58;padding:8px 6px 10px}
+.tab{flex:1;text-align:center;font-size:10px;color:#8E96AB;font-weight:500}
+.tab .ic{width:20px;height:20px;border:1.6px solid currentColor;border-radius:5px;margin:0 auto 3px;opacity:.9}
+.tab.on{color:#EDE9DF;font-weight:700}
+.tab .fab{width:38px;height:38px;border-radius:50%;background:#E9E6DD;color:#15181F;font-size:20px;display:flex;align-items:center;justify-content:center;margin:-14px auto 2px;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+/* パート行 */
+.part{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;background:var(--card)}
+.part .nm{font-weight:700;font-size:13px;color:#F2F0E9}
+.part .fee{font-size:11px;color:var(--txt-2)}
+.part .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+/* 人 */
+.person{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px dashed var(--line);color:#D8D6CF}
+.person:last-child{border-bottom:none}
+.dot{width:22px;height:22px;border-radius:50%;background:#5D6B89;flex-shrink:0}
+.chip{font-size:9px;font-weight:700;color:#C9B98A;background:rgba(156,138,90,.14);border:1px solid rgba(156,138,90,.35);border-radius:8px;padding:2px 7px}
+/* フォーム */
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld label{font-size:11px;font-weight:700;color:var(--txt-2)}
+.input{border:1px solid var(--line);border-radius:8px;background:#34415A;padding:9px 11px;font-size:12px;color:#9BA3B5}
+.sec-t{font-size:10px;font-weight:600;color:var(--brass);letter-spacing:.22em;margin-top:2px;font-family:var(--display-font)}
+/* テーブル */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tbl th{background:#42506B;text-align:left;padding:7px 8px;font-size:10px;color:var(--txt-2);letter-spacing:.05em}
+.tbl td{padding:7px 8px;border-top:1px solid var(--line);color:#D8D6CF}
+.chk{width:15px;height:15px;border:1.5px solid #A9B1C0;border-radius:4px;display:inline-block;vertical-align:middle}
+.chk.on{background:#E9E6DD;border-color:#E9E6DD;position:relative}
+.chk.on::after{content:"✓";color:#15181F;font-size:10px;font-weight:700;position:absolute;top:-1px;left:2px}
+.sum{display:flex;gap:8px}
+.sum .card{flex:1;text-align:center;padding:9px 4px}
+.sum .v{font-weight:700;font-size:14px;color:#F2F0E9;font-family:var(--display-font)}
+.sum .k{font-size:9px;color:var(--txt-2);letter-spacing:.06em}
+.note{font-size:10px;color:#959DAF;line-height:1.7}
+.unpaid{background:rgba(217,72,43,.12);color:#E8694F}
+@media(max-width:740px){body{padding:20px 10px}}
+</style>
+</head>
+<body>
+<h1>UIワイヤーフレーム v0.4</h1>
+<p class="sub">ブルーグレートーン（さらに明度アップ・藍×朱の落款×真鍮）／S10に「企画中」セクション追加</p>
+
+<div class="grid">
+
+<!-- ============ S04 企画一覧 ============ -->
+<div class="frame-wrap">
+<div class="screen-label"><b>S04</b>企画一覧（ホーム）</div>
+<div class="phone">
+  <div class="hd"><div class="logo">美</div><div class="cname">美食倶楽部</div><div class="bell"></div><div class="ava"></div></div>
+  <div class="body">
+    <div class="seg"><div class="on">リスト</div><div>カレンダー</div></div>
+    <div class="spread"><span class="cap">募集中のみ表示</span><span class="cap" style="color:#959DAF">開催日順 ▾</span></div>
+    <div class="card">
+      <div class="thumb"><span>OGP画像</span></div>
+      <div class="spread"><div class="ttl t-min">鮨かね田を貸切る会</div><span class="rarity">紹介制</span></div>
+      <div class="meta">6/27（土）18:00・銀座　企画：たく</div>
+      <div class="spread" style="margin-top:8px"><span class="badge b-open">募集中</span><span class="cap">一次会 8/10・二次会 5/8</span></div>
+    </div>
+    <div class="card">
+      <div class="thumb"><span>OGP画像</span></div>
+      <div class="spread"><div class="ttl t-min">町中華で紹興酒の夜</div></div>
+      <div class="meta">7/4（土）19:00・神田　企画：まり</div>
+      <div class="spread" style="margin-top:8px"><span class="badge b-open">募集中</span><span class="cap">一次会 4/8</span></div>
+    </div>
+    <div class="card" style="opacity:.55">
+      <div class="spread"><div class="ttl t-min">炭火焼鳥の名店へ</div><span class="rarity">数ヶ月待ち</span></div>
+      <div class="meta">7/12（日）18:30・目黒　企画：けん</div>
+      <div class="spread" style="margin-top:8px"><span class="badge b-closed">締切</span><span class="cap">一次会 10/10</span></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tab on"><div class="ic"></div>企画</div>
+    <div class="tab"><div class="ic"></div>店</div>
+    <div class="tab"><div class="fab">＋</div>作成</div>
+    <div class="tab"><div class="ic"></div>マイページ</div>
+  </div>
+</div>
+</div>
+
+<!-- ============ S05 企画詳細 ============ -->
+<div class="frame-wrap">
+<div class="screen-label"><b>S05</b>企画詳細（参加表明・コメント）</div>
+<div class="phone">
+  <div class="hd"><div class="logo">美</div><div class="cname">‹ 企画詳細</div><div class="bell"></div></div>
+  <div class="body">
+    <div class="card">
+      <div class="thumb"><span>OGP画像</span></div>
+      <div class="spread"><div class="ttl t-min">鮨かね田を貸切る会</div><span class="rarity">紹介制</span></div>
+      <div class="meta">6/27（土）18:00〜・銀座（店リンク ↗）<br>企画：たく　<span class="badge b-open">募集中</span></div>
+      <div class="meta" style="margin-top:6px">大将のはからいで貸切が取れました。旬の白甘鯛と新子をぜひ。</div>
+    </div>
+    <div class="sec-t">参加パート</div>
+    <div class="part"><div><div class="nm">一次会</div><div class="fee">¥15,000・8/10名</div></div><div class="right"><button class="btn btn-p btn-sm">参加する</button></div></div>
+    <div class="part"><div><div class="nm">二次会（バー）</div><div class="fee">¥4,000・8/8名</div></div><div class="right"><span class="badge b-closed">締切</span><button class="btn btn-d btn-sm">満員</button></div></div>
+    <div class="sec-t">参加者（一次会）</div>
+    <div class="card" style="padding:6px 12px">
+      <div class="person"><div class="dot"></div>たく <span class="chip">企画者</span></div>
+      <div class="person"><div class="dot"></div>まり</div>
+      <div class="person"><div class="dot"></div>けん <span class="chip">立替者</span></div>
+    </div>
+    <div class="sec-t">コメント</div>
+    <div class="card" style="padding:8px 12px">
+      <div class="person"><div class="dot"></div><div style="flex:1">まり：苦手なものなしです！楽しみ</div><span style="color:#8E96AB;font-size:13px">⋯</span></div>
+    </div>
+    <div class="row"><div class="input" style="flex:1">コメントを書く…</div><button class="btn btn-o btn-sm">送信</button></div>
+  </div>
+</div>
+</div>
+
+<!-- ============ S06 企画作成 ============ -->
+<div class="frame-wrap">
+<div class="screen-label"><b>S06</b>企画作成（OGP取得・パート設定）</div>
+<div class="phone">
+  <div class="hd"><div class="logo">美</div><div class="cname">‹ 企画を作成</div></div>
+  <div class="body">
+    <div class="sec-t">店</div>
+    <div class="row"><button class="btn btn-o btn-sm" style="flex:1">ストックから選ぶ</button><button class="btn btn-o btn-sm" style="flex:1">確保宣言から選ぶ</button></div>
+    <div class="fld"><label>店リンク（URL貼付で情報を自動取得）</label><div class="input">https://tabelog.com/…</div></div>
+    <div class="card" style="display:flex;gap:10px;align-items:center">
+      <div style="width:52px;height:52px;border-radius:8px;background:linear-gradient(135deg,#4F5E7B,#3A4862)"></div>
+      <div><div class="ttl t-min" style="font-size:13px">鮨 かね田</div><div class="meta">銀座・取得済 ✓（失敗時は手動入力＋画像アップロード）</div></div>
+    </div>
+    <div class="fld"><label>タイトル</label><div class="input">鮨かね田を貸切る会</div></div>
+    <div class="row"><div class="fld" style="flex:1"><label>開催日時</label><div class="input">6/27 18:00</div></div><div class="fld" style="flex:1"><label>場所</label><div class="input">銀座</div></div></div>
+    <div class="sec-t">参加パート</div>
+    <div class="part"><div class="nm">一次会</div><div class="right"><span class="fee">定員 10</span><span class="fee">¥15,000</span></div></div>
+    <div class="part"><div class="nm">二次会</div><div class="right"><span class="fee">定員 8</span><span class="fee">¥4,000</span></div></div>
+    <button class="btn btn-o btn-sm">＋ パートを追加</button>
+    <button class="btn btn-p" style="margin-top:auto">この内容で公開する</button>
+  </div>
+</div>
+</div>
+
+<!-- ============ S07 店リスト ============ -->
+<div class="frame-wrap">
+<div class="screen-label"><b>S07</b>店リスト（行きたい／確保できる）</div>
+<div class="phone">
+  <div class="hd"><div class="logo">美</div><div class="cname">美食倶楽部</div><div class="bell"></div><div class="ava"></div></div>
+  <div class="body">
+    <div class="seg"><div>行きたい</div><div class="on">確保できる</div></div>
+    <div class="card">
+      <div class="spread"><div class="ttl t-min">鮨 かね田</div><span class="rarity">紹介制</span></div>
+      <div class="meta">銀座・鮨</div>
+      <div class="row" style="margin-top:8px"><div class="dot" style="width:18px;height:18px"></div><span class="cap">たく</span><span class="chip">常連</span><span class="cap" style="color:#959DAF">平日なら・4名まで</span></div>
+    </div>
+    <div class="card">
+      <div class="spread"><div class="ttl t-min">クラブ・ヌーボー</div><span class="rarity">会員制</span></div>
+      <div class="meta">麻布・フレンチ</div>
+      <div class="row" style="margin-top:8px"><div class="dot" style="width:18px;height:18px"></div><span class="cap">けん</span><span class="chip">会員</span><span class="cap" style="color:#959DAF">同伴2名まで</span></div>
+    </div>
+    <div class="card">
+      <div class="spread"><div class="ttl t-min">焼鳥 一徹</div><span class="rarity">数ヶ月待ち</span></div>
+      <div class="meta">目黒・焼鳥</div>
+      <div class="row" style="margin-top:8px"><div class="dot" style="width:18px;height:18px"></div><span class="cap">まり</span><span class="chip">紹介ルート</span></div>
+    </div>
+    <button class="btn btn-o">＋ 店を追加（URL貼付）</button>
+  </div>
+  <div class="tabbar">
+    <div class="tab"><div class="ic"></div>企画</div>
+    <div class="tab on"><div class="ic"></div>店</div>
+    <div class="tab"><div class="fab">＋</div>作成</div>
+    <div class="tab"><div class="ic"></div>マイページ</div>
+  </div>
+</div>
+</div>
+
+<!-- ============ S09 精算管理 ============ -->
+<div class="frame-wrap">
+<div class="screen-label"><b>S09</b>精算管理（幹事・立替者）</div>
+<div class="phone">
+  <div class="hd"><div class="logo">美</div><div class="cname">‹ 精算：鮨かね田の会</div></div>
+  <div class="body">
+    <div class="spread"><span class="badge b-open">集金中</span><span class="cap">端数は切り上げ</span></div>
+    <div class="row"><div class="fld" style="flex:1"><label>一次会 実額</label><div class="input">¥148,500</div></div><div class="fld" style="flex:1"><label>二次会 実額</label><div class="input">¥31,000</div></div></div>
+    <table class="tbl">
+      <tr><th>メンバー</th><th>パート</th><th>請求額</th><th>支払</th></tr>
+      <tr><td>まり</td><td>一+二</td><td>¥18,750</td><td><span class="chk on"></span></td></tr>
+      <tr><td>けん</td><td>一+二</td><td>¥18,750</td><td><span class="chk"></span></td></tr>
+      <tr><td>ゆう</td><td>一のみ</td><td>¥14,850</td><td><span class="chk"></span></td></tr>
+      <tr><td style="color:#8E96AB">＋ 行を追加 / 除外・金額上書き可</td><td></td><td></td><td></td></tr>
+    </table>
+    <div class="sum">
+      <div class="card"><div class="v">¥179,800</div><div class="k">集金合計</div></div>
+      <div class="card"><div class="v">¥179,500</div><div class="k">実額</div></div>
+      <div class="card"><div class="v" style="color:var(--green)">+¥300</div><div class="k">差分（幹事預かり）</div></div>
+    </div>
+    <div class="row"><button class="btn btn-o btn-sm" style="flex:1">集金連絡文をコピー</button><button class="btn btn-p btn-sm" style="flex:1">精算を確定する</button></div>
+    <p class="note">確定後は明細がロックされます。「確定取消」で再編集できます。一般メンバーがこの画面を開くと自分の明細のみ表示されます。</p>
+  </div>
+</div>
+</div>
+
+<!-- ============ S10 マイページ ============ -->
+<div class="frame-wrap">
+<div class="screen-label"><b>S10</b>マイページ（企画中・支払状況・宣言）</div>
+<div class="phone">
+  <div class="hd"><div class="logo">美</div><div class="cname">美食倶楽部</div><div class="bell"></div></div>
+  <div class="body">
+    <div class="card row"><div class="dot" style="width:40px;height:40px"></div><div><div class="ttl t-min" style="font-size:14px">たく</div><div class="meta">ニックネームを編集</div></div><span class="chip" style="margin-left:auto">admin</span></div>
+    <div class="sec-t">企画中</div>
+    <div class="card spread"><div><div class="ttl" style="font-size:12px">鮨かね田を貸切る会 <span class="rarity" style="font-size:8px;padding:2px 5px">紹介制</span></div><div class="meta">6/27・一次会 8/10・二次会 満員</div></div><button class="btn btn-o btn-sm">精算へ</button></div>
+    <div class="sec-t">参加予定</div>
+    <div class="card spread"><div><div class="ttl" style="font-size:12px">町中華で紹興酒の夜</div><div class="meta">7/4（土）19:00・一次会</div></div><span class="cap">›</span></div>
+    <div class="sec-t">未払い</div>
+    <div class="card spread"><div><div class="ttl" style="font-size:12px">春の天ぷらの会</div><div class="meta">¥6,200・振込先は連絡参照</div></div><span class="badge unpaid">未払い</span></div>
+    <div class="sec-t">ストック・確保宣言</div>
+    <div class="card spread"><div><div class="ttl" style="font-size:12px">鮨 かね田</div><div class="meta">確保宣言：常連・平日なら</div></div><span class="cap">編集</span></div>
+    <div class="card spread" style="border-style:dashed"><div class="cap">コミュニティ設定（管理者）</div><span class="cap">›</span></div>
+    <div class="cap" style="text-align:center;color:#8E96AB">ログアウト</div>
+  </div>
+  <div class="tabbar">
+    <div class="tab"><div class="ic"></div>企画</div>
+    <div class="tab"><div class="ic"></div>店</div>
+    <div class="tab"><div class="fab">＋</div>作成</div>
+    <div class="tab on"><div class="ic"></div>マイページ</div>
+  </div>
+</div>
+</div>
+
+</div>
+</body>
+</html>

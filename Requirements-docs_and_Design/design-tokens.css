@@ -1,0 +1,78 @@
+/* ============================================================
+   フーディコミュニティアプリ デザイントークン v1.0
+   ベース: ワイヤーフレーム v0.4（ブルーグレー確定版）
+   原則: 背景はカードより一段暗く / 朱は落款と未払いのみ /
+         真鍮は見出し・細線・チップのみ / 明朝は店名・企画名・金額
+   ============================================================ */
+
+:root {
+  /* --- 面（明度順: bg < card < card-2） --- */
+  --color-bg:        #333F56;  /* アプリ背景 */
+  --color-card:      #39465F;  /* カード面 */
+  --color-card-2:    #44526F;  /* 浮き面（モーダル・強調カード） */
+  --color-line:      #50607C;  /* ヘアライン罫 */
+
+  /* --- 文字 --- */
+  --color-txt:       #ECEAE4;  /* 本文（温白） */
+  --color-txt-2:     #B8BFCC;  /* 補助 */
+  --color-txt-muted: #959DAF;  /* 弱補助・プレースホルダ */
+  --color-heading:   #F2F0E9;  /* 見出し・店名 */
+
+  /* --- アクセント（用途固定） --- */
+  --color-shu:       #D9482B;  /* 朱: 落款バッジ・未払い・通知バッジのみ */
+  --color-brass:     #C2AB70;  /* 真鍮: セクション見出し・ヘッダー線・チップ */
+  --color-green:     #5FAE85;  /* 募集中・参加済み・差分プラス */
+
+  /* --- 反転（主ボタン・選択日） --- */
+  --color-invert-bg:  #E9E6DD; /* 生成り白 */
+  --color-invert-txt: #1A2230;
+
+  /* --- フォント --- */
+  --font-body:    "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --font-display: "Shippori Mincho", "Hiragino Mincho ProN", serif;
+  /* display適用先: 店名・企画タイトル・金額・コミュニティ名・セクション見出し */
+
+  /* --- 字間（display系） --- */
+  --tracking-title:   .03em;
+  --tracking-cname:   .14em;   /* コミュニティ名 */
+  --tracking-section: .22em;   /* 真鍮セクション見出し */
+
+  /* --- 角丸 --- */
+  --radius-card:  12px;
+  --radius-btn:   8px;
+  --radius-input: 8px;
+  --radius-seal:  3px;   /* 落款は角をほぼ立てる */
+  --radius-phone: 22px;
+
+  /* --- 余白基準 --- */
+  --space-card-pad: 12px;
+  --space-body-pad: 14px;
+  --space-gap:      12px;
+}
+
+/* ============ コンポーネント規約（実装メモ） ============
+   .rarity（落款バッジ）:
+     border 1.5px solid var(--color-shu); color #E8694F;
+     font: var(--font-display) 700 10px; letter-spacing .14em;
+     background rgba(217,72,43,.08); radius var(--radius-seal)
+     ※ rarity別の文言: ふらっと入れる / 予約可 / 紹介制 / 数ヶ月待ち / 会員制
+     ※ walk_in / reservable はバッジ非表示（希少でないため）
+
+   .sec-t（真鍮セクション見出し）:
+     font: var(--font-display) 600 10px; color var(--color-brass);
+     letter-spacing var(--tracking-section);
+     右にリード線: linear-gradient(90deg, rgba(194,171,112,.4), transparent)
+
+   ヘッダー: 下辺に 1px solid var(--color-brass) の一本線
+
+   .chip（コネ種別）:
+     color var(--color-brass); border 1px solid rgba(194,171,112,.35);
+     background rgba(194,171,112,.14)
+     ※ 文言: 常連 / 店主と知人 / 紹介ルート / 会員 / その他
+
+   ステータスバッジ:
+     募集中 = green系 / 締切 = line系グレー / 未払い = shu系
+
+   主ボタン(.btn-p): bg var(--color-invert-bg), txt var(--color-invert-txt)
+   外枠ボタン(.btn-o): transparent + 1px solid #5D6B89
+   ============================================================ */

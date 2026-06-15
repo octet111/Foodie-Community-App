@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画面遷移図 v1.0 — フーディコミュニティアプリ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#333F56;--card:#39465F;--card2:#44526F;--line:#50607C;
+  --brass:#C2AB70;--txt:#ECEAE4;--txt2:#B8BFCC;--shu:#D9482B;--green:#5FAE85;
+  --inv:#E9E6DD;--invtxt:#1A2230;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#242F45;font-family:"Zen Kaku Gothic New","Hiragino Sans",sans-serif;color:var(--txt);padding:30px 16px}
+h1{font-family:"Shippori Mincho",serif;font-size:21px;letter-spacing:.1em;color:#F2F0E9;margin-bottom:4px}
+.sub{color:#959DAF;font-size:12px;margin-bottom:20px}
+.wrap{max-width:1080px;margin:0 auto;overflow-x:auto}
+svg{display:block;min-width:980px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;max-width:1080px;margin:14px auto 0;font-size:11px;color:var(--txt2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{width:22px;height:13px;border-radius:4px;display:inline-block}
+</style>
+</head>
+<body>
+<h1>画面遷移図 v1.0</h1>
+<p class="sub">MVP 11画面＋モーダル3種／画面設計書 v0.1・実装仕様書 v1.0 対応</p>
+
+<div class="wrap">
+<svg viewBox="0 0 1080 760" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M1.5 1.5 L8.5 5 L1.5 8.5" fill="none" stroke="#8E96AB" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="arb" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M1.5 1.5 L8.5 5 L1.5 8.5" fill="none" stroke="#C2AB70" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <style>
+    .nd{fill:#39465F;stroke:#50607C;stroke-width:1;rx:12}
+    .nd-auth{fill:#39465F;stroke:#50607C;stroke-dasharray:none}
+    .nd-mod{fill:#44526F;stroke:#6B7A99;stroke-dasharray:4 3}
+    .nd-adm{fill:#39465F;stroke:#C2AB70}
+    .sid{font-family:"Shippori Mincho",serif;font-weight:700;font-size:12px;fill:#C2AB70;letter-spacing:.12em}
+    .snm{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:700;font-size:13px;fill:#F2F0E9}
+    .sds{font-family:"Zen Kaku Gothic New",sans-serif;font-size:10px;fill:#B8BFCC}
+    .lk{stroke:#8E96AB;stroke-width:1.4;fill:none}
+    .lkb{stroke:#C2AB70;stroke-width:1.5;fill:none}
+    .lkd{stroke:#8E96AB;stroke-width:1.3;fill:none;stroke-dasharray:5 4}
+    .lbl{font-family:"Zen Kaku Gothic New",sans-serif;font-size:9.5px;fill:#A9B1C0}
+    .lblb{font-family:"Zen Kaku Gothic New",sans-serif;font-size:9.5px;fill:#D4C28E;font-weight:700}
+    .grp{fill:none;stroke:#50607C;stroke-width:1;stroke-dasharray:6 5;rx:16}
+    .grpt{font-family:"Shippori Mincho",serif;font-size:11px;fill:#959DAF;letter-spacing:.2em}
+  </style>
+</defs>
+
+<!-- ===== 認証グループ ===== -->
+<rect class="grp" x="24" y="58" width="206" height="420" rx="16"/>
+<text class="grpt" x="44" y="46">未ログイン</text>
+
+<!-- S02 -->
+<g>
+  <rect class="nd nd-auth" x="48" y="90" width="158" height="64" rx="12"/>
+  <text class="sid" x="64" y="112">S02</text><text class="snm" x="64" y="130">新規登録</text>
+  <text class="sds" x="64" y="144">ニックネーム公開/メール非公開</text>
+</g>
+<!-- S01 -->
+<g>
+  <rect class="nd nd-auth" x="48" y="222" width="158" height="64" rx="12"/>
+  <text class="sid" x="64" y="244">S01</text><text class="snm" x="64" y="262">ログイン</text>
+  <text class="sds" x="64" y="276">メール＋パスワード</text>
+</g>
+<!-- S03 -->
+<g>
+  <rect class="nd nd-auth" x="48" y="372" width="158" height="64" rx="12"/>
+  <text class="sid" x="64" y="394">S03</text><text class="snm" x="64" y="412">パスワードリセット</text>
+  <text class="sds" x="64" y="426">再設定リンク送信</text>
+</g>
+
+<line class="lk" x1="127" y1="222" x2="127" y2="154" marker-end="url(#ar)"/>
+<line class="lk" x1="127" y1="286" x2="127" y2="372" marker-end="url(#ar)"/>
+
+<!-- 認証成功 → S04 -->
+<path class="lkb" d="M206 254 C 250 254, 256 254, 296 254" marker-end="url(#arb)"/>
+<text class="lblb" x="214" y="246">認証成功</text>
+
+<!-- ===== タブグループ ===== -->
+<rect class="grp" x="288" y="58" width="226" height="640" rx="16"/>
+<text class="grpt" x="308" y="46">下部タブ（常時起点）</text>
+
+<!-- S04 -->
+<g>
+  <rect class="nd" x="304" y="120" width="194" height="84" rx="12"/>
+  <text class="sid" x="320" y="143">S04</text><text class="snm" x="320" y="161">企画一覧（ホーム）</text>
+  <text class="sds" x="320" y="177">リスト / カレンダー切替</text>
+  <text class="sds" x="320" y="191">希少バッジ・募集状況</text>
+</g>
+<!-- S07 -->
+<g>
+  <rect class="nd" x="304" y="300" width="194" height="84" rx="12"/>
+  <text class="sid" x="320" y="323">S07</text><text class="snm" x="320" y="341">店リスト</text>
+  <text class="sds" x="320" y="357">行きたい / 確保できる タブ</text>
+  <text class="sds" x="320" y="371">コネ種別チップ表示</text>
+</g>
+<!-- ＋作成 -->
+<g>
+  <circle cx="401" cy="470" r="26" fill="#E9E6DD"/>
+  <text x="401" y="478" text-anchor="middle" font-size="22" fill="#1A2230" font-weight="400">＋</text>
+  <text class="sds" x="401" y="514" text-anchor="middle">作成（FAB）</text>
+</g>
+<!-- S10 -->
+<g>
+  <rect class="nd" x="304" y="560" width="194" height="100" rx="12"/>
+  <text class="sid" x="320" y="583">S10</text><text class="snm" x="320" y="601">マイページ</text>
+  <text class="sds" x="320" y="617">企画中 / 参加予定 / 未払い</text>
+  <text class="sds" x="320" y="631">ストック・確保宣言</text>
+  <text class="sds" x="320" y="645">設定リンク（admin）</text>
+</g>
+
+<!-- ===== 詳細層 ===== -->
+<!-- S05 -->
+<g>
+  <rect class="nd" x="586" y="104" width="200" height="112" rx="12"/>
+  <text class="sid" x="602" y="127">S05</text><text class="snm" x="602" y="145">企画詳細</text>
+  <text class="sds" x="602" y="161">a: 未参加 / b: 参加済み で分岐</text>
+  <text class="sds" x="602" y="175">企画説明・パート別参加状況</text>
+  <text class="sds" x="602" y="189">会費見込み・参加者・コメント</text>
+  <text class="sds" x="602" y="203">企画者: 編集/締切/削除</text>
+</g>
+<!-- S08 -->
+<g>
+  <rect class="nd" x="586" y="300" width="200" height="96" rx="12"/>
+  <text class="sid" x="602" y="323">S08</text><text class="snm" x="602" y="341">店詳細</text>
+  <text class="sds" x="602" y="357">希少性タグ・確保できる人一覧</text>
+  <text class="sds" x="602" y="371">過去の企画</text>
+  <text class="sds" x="602" y="385">→ この店で企画を立てる</text>
+</g>
+<!-- S06 -->
+<g>
+  <rect class="nd" x="586" y="470" width="200" height="100" rx="12"/>
+  <text class="sid" x="602" y="493">S06</text><text class="snm" x="602" y="511">企画作成・編集</text>
+  <text class="sds" x="602" y="527">URL→OGP（失敗時 手動入力）</text>
+  <text class="sds" x="602" y="541">企画説明（プレーンテキスト）</text>
+  <text class="sds" x="602" y="555">パート設定（一次会/二次会…）</text>
+</g>
+
+<!-- ===== 右列: 操作・権限層 ===== -->
+<!-- 参加表明モーダル -->
+<g>
+  <rect class="nd nd-mod" x="868" y="70" width="180" height="58" rx="12"/>
+  <text class="snm" x="884" y="94" font-size="12">参加表明モーダル</text>
+  <text class="sds" x="884" y="110">パート選択 → 表明/取消</text>
+</g>
+<!-- S09 -->
+<g>
+  <rect class="nd" x="868" y="178" width="180" height="118" rx="12"/>
+  <text class="sid" x="884" y="201">S09</text><text class="snm" x="884" y="219">精算管理</text>
+  <text class="sds" x="884" y="235">パート別実額・割り勘(切上)</text>
+  <text class="sds" x="884" y="249">母集団調整・支払チェック</text>
+  <text class="sds" x="884" y="263">確定 / 確定取消</text>
+  <text class="sds" x="884" y="283" fill="#D4C28E">一般メンバーは本人明細のみ</text>
+</g>
+<!-- 確保宣言モーダル -->
+<g>
+  <rect class="nd nd-mod" x="868" y="330" width="180" height="58" rx="12"/>
+  <text class="snm" x="884" y="354" font-size="12">確保宣言モーダル</text>
+  <text class="sds" x="884" y="370">コネ種別5択＋補足条件</text>
+</g>
+<!-- 店追加モーダル -->
+<g>
+  <rect class="nd nd-mod" x="868" y="420" width="180" height="58" rx="12"/>
+  <text class="snm" x="884" y="444" font-size="12">店追加モーダル</text>
+  <text class="sds" x="884" y="460">URL→OGP→難易度タグ</text>
+</g>
+<!-- S11 -->
+<g>
+  <rect class="nd nd-adm" x="868" y="560" width="180" height="84" rx="12"/>
+  <text class="sid" x="884" y="583">S11</text><text class="snm" x="884" y="601">コミュニティ設定</text>
+  <text class="sds" x="884" y="617">名前・ロゴ / メンバー管理</text>
+  <text class="sds" x="884" y="631" fill="#D4C28E">admin限定</text>
+</g>
+
+<!-- ===== 遷移線 ===== -->
+<!-- S04 → S05 -->
+<path class="lk" d="M498 160 C 540 160, 544 160, 582 160" marker-end="url(#ar)"/>
+<text class="lbl" x="508" y="152">カードタップ</text>
+
+<!-- S05 → 参加表明モーダル -->
+<path class="lk" d="M786 130 C 824 122, 828 110, 864 102" marker-end="url(#ar)"/>
+<text class="lbl" x="796" y="106">参加する</text>
+
+<!-- S05 → S09 -->
+<path class="lk" d="M786 188 C 826 200, 828 212, 864 222" marker-end="url(#ar)"/>
+<text class="lbl" x="792" y="222">精算へ</text>
+<text class="lblb" x="792" y="234">幹事・立替者</text>
+
+<!-- S07 → S08 -->
+<path class="lk" d="M498 344 C 540 344, 544 344, 582 344" marker-end="url(#ar)"/>
+<text class="lbl" x="512" y="336">カードタップ</text>
+
+<!-- S07 → 店追加モーダル -->
+<path class="lkd" d="M498 376 C 660 430, 760 444, 864 447" marker-end="url(#ar)"/>
+<text class="lbl" x="650" y="430">＋店を追加</text>
+
+<!-- S08 → 確保宣言モーダル -->
+<path class="lk" d="M786 352 C 824 354, 828 356, 864 358" marker-end="url(#ar)"/>
+<text class="lbl" x="796" y="346">宣言する</text>
+
+<!-- S08 → S06（店引き継ぎ） -->
+<path class="lkb" d="M686 396 C 686 432, 686 436, 686 466" marker-end="url(#arb)"/>
+<text class="lblb" x="696" y="436">店情報を引き継いで企画化</text>
+
+<!-- FAB → S06 -->
+<path class="lk" d="M427 470 C 500 488, 520 506, 582 514" marker-end="url(#ar)"/>
+<text class="lbl" x="470" y="486">新規作成</text>
+
+<!-- S06 → S05（公開） -->
+<path class="lkb" d="M786 500 C 836 470, 836 300, 790 220" marker-end="url(#arb)"/>
+<text class="lblb" x="826" y="416" transform="rotate(-90 826 416)"></text>
+<text class="lblb" x="800" y="466">公開 → 詳細へ</text>
+
+<!-- S10 → S09 -->
+<path class="lkd" d="M498 588 C 700 588, 800 420, 866 300" marker-end="url(#ar)"/>
+<text class="lbl" x="640" y="572">企画中の「精算へ」</text>
+
+<!-- S10 → S11 -->
+<path class="lkb" d="M498 632 C 660 644, 760 624, 864 606" marker-end="url(#arb)"/>
+<text class="lblb" x="660" y="648">admin のみ</text>
+
+</svg>
+</div>
+
+<div class="legend">
+  <span><span class="lg" style="background:#39465F;border:1px solid #50607C"></span>画面</span>
+  <span><span class="lg" style="background:#44526F;border:1px dashed #6B7A99"></span>モーダル（画面遷移なし）</span>
+  <span><span class="lg" style="background:#39465F;border:1px solid #C2AB70"></span>権限限定画面</span>
+  <span><svg width="34" height="12"><line x1="0" y1="6" x2="30" y2="6" stroke="#8E96AB" stroke-width="1.5"/></svg>通常遷移</span>
+  <span><svg width="34" height="12"><line x1="0" y1="6" x2="30" y2="6" stroke="#C2AB70" stroke-width="1.5"/></svg>主要動線（価値の流れ）</span>
+  <span><svg width="34" height="12"><line x1="0" y1="6" x2="30" y2="6" stroke="#8E96AB" stroke-width="1.5" stroke-dasharray="5 4"/></svg>ショートカット遷移</span>
+</div>
+</body>
+</html>
