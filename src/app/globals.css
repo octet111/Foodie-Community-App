@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  /* 面（明度順: bg < card < card-2） */
+  --color-bg: #333f56;
+  --color-card: #39465f;
+  --color-card-2: #44526f;
+  --color-line: #50607c;
+
+  /* 文字 */
+  --color-txt: #eceae4;
+  --color-txt-2: #b8bfcc;
+  --color-txt-muted: #959daf;
+  --color-heading: #f2f0e9;
+
+  /* アクセント */
+  --color-shu: #d9482b;
+  --color-brass: #c2ab70;
+  --color-green: #5fae85;
+
+  /* 反転 */
+  --color-invert-bg: #e9e6dd;
+  --color-invert-txt: #1a2230;
+
+  /* フォント（next/font の variable を layout で上書き） */
+  --font-body: var(--font-zen-kaku), "Hiragino Sans", "Yu Gothic", sans-serif;
+  --font-display: var(--font-shippori), "Hiragino Mincho ProN", serif;
+
+  /* 字間 */
+  --tracking-title: 0.03em;
+  --tracking-cname: 0.14em;
+  --tracking-section: 0.22em;
+
+  /* 角丸 */
+  --radius-card: 12px;
+  --radius-btn: 8px;
+  --radius-input: 8px;
+  --radius-seal: 3px;
+  --radius-phone: 22px;
+
+  /* 余白 */
+  --space-card-pad: 12px;
+  --space-body-pad: 14px;
+  --space-gap: 12px;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-card: var(--color-card);
+  --color-card-2: var(--color-card-2);
+  --color-line: var(--color-line);
+  --color-brass: var(--color-brass);
+  --color-shu: var(--color-shu);
+  --color-green: var(--color-green);
+  --color-inv: var(--color-invert-bg);
+  --color-heading: var(--color-heading);
+  --color-txt-2: var(--color-txt-2);
+  --font-body: var(--font-body);
+  --font-display: var(--font-display);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-txt);
+  font-family: var(--font-body);
+}

@@ -1,0 +1,89 @@
+"use client";
+
+import { useState } from "react";
+import type { AppProfile } from "@/lib/app-data";
+import type { ShopClaimGroup, StockItem } from "@/lib/shops-data";
+import { Button } from "@/components/ui/Button";
+import { ShopAddModal } from "@/components/shops/ShopAddModal";
+import { ShopClaimCard } from "@/components/shops/ShopClaimCard";
+import { ShopStockCard } from "@/components/shops/ShopStockCard";
+
+type Tab = "stocks" | "claims";
+
+type ShopsPageClientProps = {
+  profile: AppProfile;
+  stocks: StockItem[];
+  claimGroups: ShopClaimGroup[];
+};
+
+export function ShopsPageClient({
+  profile,
+  stocks,
+  claimGroups,
+}: ShopsPageClientProps) {
+  const [tab, setTab] = useState<Tab>("stocks");
+  const [addOpen, setAddOpen] = useState(false);
+
+  return (
+    <>
+      <div className="flex rounded-[var(--radius-btn)] border border-line bg-card p-0.5">
+        <button
+          type="button"
+          className={`flex-1 rounded-md py-1.5 text-xs font-bold transition-colors ${
+            tab === "stocks"
+              ? "bg-card-2 text-txt"
+              : "text-txt-muted hover:text-txt-2"
+          }`}
+          onClick={() => setTab("stocks")}
+        >
+          行きたい
+        </button>
+        <button
+          type="button"
+          className={`flex-1 rounded-md py-1.5 text-xs font-bold transition-colors ${
+            tab === "claims"
+              ? "bg-card-2 text-txt"
+              : "text-txt-muted hover:text-txt-2"
+          }`}
+          onClick={() => setTab("claims")}
+        >
+          確保できる
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {tab === "stocks" ? (
+          stocks.length === 0 ? (
+            <p className="py-8 text-center text-sm text-txt-muted">
+              行きたい店がまだありません。下のボタンから店を追加しましょう。
+            </p>
+          ) : (
+            stocks.map((item) => <ShopStockCard key={item.id} item={item} />)
+          )
+        ) : claimGroups.length === 0 ? (
+          <p className="py-8 text-center text-sm text-txt-muted">
+            確保宣言がある店がまだありません。
+          </p>
+        ) : (
+          claimGroups.map((group) => (
+            <ShopClaimCard key={group.shop.id} group={group} />
+          ))
+        )}
+      </div>
+
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => setAddOpen(true)}
+      >
+        ＋ 店を追加（URL貼付）
+      </Button>
+
+      <ShopAddModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        userId={profile.id}
+      />
+    </>
+  );
+}
