@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { AppProfile } from "@/lib/app-data";
 import type { EventDetail } from "@/lib/events-data";
 import { getEventById } from "@/lib/events-data";
 import {
@@ -47,19 +48,37 @@ export async function isEventManager(
   eventId: string,
   userId: string,
   role: "member" | "admin",
+  event?: Pick<EventDetail, "organizer_id" | "finalizer_id"> | null,
 ): Promise<boolean> {
   if (role === "admin") return true;
+
+  const detail =
+    event ??
+    (await getEventById(eventId, userId)) ??
+    null;
+
+  if (!detail) return false;
+  if (detail.organizer_id === userId) return true;
+  if (detail.finalizer_id === userId) return true;
+
   const supabase = await createClient();
   const { data } = await supabase.rpc("is_event_manager", { eid: eventId });
-  if (data === true) return true;
+  return data === true;
+}
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("organizer_id")
-    .eq("id", eventId)
-    .maybeSingle();
-
-  return event?.organizer_id === userId;
+export function canAccessSettlementPage(
+  event: EventDetail,
+  profile: Pick<AppProfile, "id" | "role">,
+  isManager: boolean,
+  hasOwnItems: boolean,
+): boolean {
+  if (isManager) return true;
+  if (event.organizer_id === profile.id) return true;
+  if (event.finalizer_id === profile.id) return true;
+  if (profile.role === "admin") return true;
+  if (hasOwnItems) return true;
+  if (event.myJoinedPartIds.length > 0) return true;
+  return false;
 }
 
 function buildPartInputs(
@@ -106,10 +125,7 @@ export async function getSettlementPageData(
   if (!event) return null;
 
   const supabase = await createClient();
-  const manager =
-    role === "admin" ||
-    event.organizer_id === userId ||
-    (await isEventManager(eventId, userId, role));
+  const manager = await isEventManager(eventId, userId, role, event);
 
   const { data: profiles } = await supabase
     .from("profiles")

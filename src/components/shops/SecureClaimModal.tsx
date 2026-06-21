@@ -160,8 +160,8 @@ function SecureClaimForm({
       <div className="flex gap-2">
         {existingClaim && (
           <Button
-            variant="outline"
-            className="flex-1 text-shu"
+            variant="danger"
+            className="flex-1"
             disabled={loading}
             onClick={handleDelete}
           >

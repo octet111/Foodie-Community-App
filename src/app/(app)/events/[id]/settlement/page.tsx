@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { SettlementPageClient } from "@/components/settlement/SettlementPageClient";
 import { getCurrentProfile } from "@/lib/app-data";
 import {
+  canAccessSettlementPage,
   ensureSettlement,
   getSettlementPageData,
   syncItemsFromParticipations,
@@ -20,12 +21,12 @@ export default async function SettlementPage({ params }: SettlementPageProps) {
   const data = await getSettlementPageData(eventId, profile.id, profile.role);
   if (!data) notFound();
 
-  const isOrganizer = data.event.organizer_id === profile.id;
-  const canAccess =
-    data.isManager ||
-    isOrganizer ||
-    data.items.length > 0 ||
-    data.event.myJoinedPartIds.length > 0;
+  const canAccess = canAccessSettlementPage(
+    data.event,
+    profile,
+    data.isManager,
+    data.items.length > 0,
+  );
 
   if (!canAccess) notFound();
 

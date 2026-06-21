@@ -37,6 +37,7 @@ export type EventDetail = EventListItem & {
   description: string | null;
   organizer_id: string;
   finalizer_id: string | null;
+  finalizerNickname: string | null;
   participations: ParticipationRow[];
   comments: CommentRow[];
   myJoinedPartIds: string[];
@@ -210,10 +211,26 @@ export async function getEventById(
     description: row.description,
     organizer_id: row.organizer_id,
     finalizer_id: settlement?.finalized_by ?? null,
+    finalizerNickname: settlement?.finalized_by
+      ? (nicknameById.get(settlement.finalized_by) ?? null)
+      : null,
     participations,
     comments: commentRows,
     myJoinedPartIds,
   };
+}
+
+export async function getMemberProfiles(): Promise<
+  { id: string; nickname: string }[]
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, nickname")
+    .order("nickname");
+
+  if (error || !data) return [];
+  return data;
 }
 
 export async function getOrganizerEvents(

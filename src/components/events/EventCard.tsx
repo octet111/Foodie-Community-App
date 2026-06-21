@@ -48,7 +48,9 @@ export function EventCard({ event }: EventCardProps) {
                     : "border-heading text-heading"
                 }`}
               >
-                残り{firstPartRemaining}人
+                {firstPartRemaining === 0
+                  ? "満員"
+                  : `残り${firstPartRemaining}人`}
               </span>
             )}
           </div>

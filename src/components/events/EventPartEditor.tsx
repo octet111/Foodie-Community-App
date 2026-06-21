@@ -86,7 +86,7 @@ export function EventPartEditor({ parts, onChange }: EventPartEditorProps) {
           {parts.length > 1 && (
             <button
               type="button"
-              className="pb-1.5 text-xs text-txt-muted hover:text-red-400"
+              className="pb-1.5 text-xs text-[#E8694F] hover:underline"
               onClick={() => removePart(part.key)}
             >
               削除

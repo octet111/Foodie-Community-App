@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { AppProfile } from "@/lib/app-data";
 import type { CommentRow, EventDetail } from "@/lib/events-data";
@@ -8,6 +8,9 @@ import { formatHeldAt } from "@/lib/event-dates";
 import {
   canCancelPart,
   canJoinPart,
+  canManageParticipations,
+  canReopenEvent,
+  getFirstPart,
   isPartFull,
   sumFeeEstimate,
 } from "@/lib/event-participation";
@@ -23,9 +26,14 @@ import Link from "next/link";
 type EventDetailClientProps = {
   event: EventDetail;
   profile: AppProfile;
+  memberProfiles: { id: string; nickname: string }[];
 };
 
-export function EventDetailClient({ event, profile }: EventDetailClientProps) {
+export function EventDetailClient({
+  event,
+  profile,
+  memberProfiles,
+}: EventDetailClientProps) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,11 +44,50 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
     new Set(event.myJoinedPartIds),
   );
   const [participations, setParticipations] = useState(event.participations);
+  const [addUserByPart, setAddUserByPart] = useState<Record<string, string>>(
+    {},
+  );
+  const [finalizerId, setFinalizerId] = useState<string | null>(
+    event.finalizer_id,
+  );
+  const [finalizerDraft, setFinalizerDraft] = useState(
+    event.finalizer_id ?? "",
+  );
 
   const isOrganizer = event.organizer_id === profile.id;
   const isAdmin = profile.role === "admin";
+  const isFinalizer = finalizerId === profile.id;
   const joinedAny = myJoinedPartIds.size > 0;
+  const canManage = canManageParticipations(status, isOrganizer, isAdmin);
+  const canSetFinalizer =
+    (isOrganizer || isAdmin) && (status === "open" || status === "closed");
+  const canReopen = canReopenEvent(status, isOrganizer, isAdmin);
+  const canOpenSettlement =
+    isOrganizer || isAdmin || isFinalizer || joinedAny;
+  const finalizerNickname =
+    (finalizerId
+      ? memberProfiles.find((p) => p.id === finalizerId)?.nickname
+      : null) ??
+    event.finalizerNickname ??
+    (finalizerId
+      ? (participations.find((p) => p.user_id === finalizerId)?.nickname ??
+        null)
+      : null);
   const feeEstimate = sumFeeEstimate(parts, myJoinedPartIds);
+
+  const firstPart = getFirstPart(parts);
+  const firstPartParticipantOptions = firstPart
+    ? participations
+        .filter((p) => p.event_part_id === firstPart.id)
+        .filter(
+          (p, i, arr) =>
+            arr.findIndex((x) => x.user_id === p.user_id) === i,
+        )
+        .map((p) => ({ id: p.user_id, nickname: p.nickname }))
+    : [];
+  const firstPartParticipantIds = new Set(
+    firstPartParticipantOptions.map((p) => p.id),
+  );
 
   async function refreshFromServer() {
     router.refresh();
@@ -123,11 +170,12 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
   }
 
   async function handleOrganizerRemove(participationId: string, partId: string) {
-    if (!isOrganizer && !isAdmin) return;
+    if (!canManage) return;
     setError(null);
     setBusy(participationId);
     const supabase = createClient();
 
+    const target = participations.find((p) => p.id === participationId);
     const { error: deleteError } = await supabase
       .from("participations")
       .delete()
@@ -140,6 +188,13 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
     }
 
     setParticipations((prev) => prev.filter((p) => p.id !== participationId));
+    if (target && target.user_id === profile.id) {
+      setMyJoinedPartIds((prev) => {
+        const next = new Set(prev);
+        next.delete(partId);
+        return next;
+      });
+    }
     setParts((prev) =>
       prev.map((p) =>
         p.id === partId ? { ...p, joinedCount: Math.max(0, p.joinedCount - 1) } : p,
@@ -149,12 +204,133 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
     refreshFromServer();
   }
 
+  async function handleOrganizerAdd(userId: string, partId: string) {
+    if (!canManage || !userId) return;
+    const part = parts.find((p) => p.id === partId);
+    if (!part || isPartFull(part)) {
+      setError("定員に達しているため追加できません");
+      return;
+    }
+    setError(null);
+    setBusy(`add-${partId}-${userId}`);
+    const supabase = createClient();
+
+    const { data, error: insertError } = await supabase
+      .from("participations")
+      .insert({
+        event_part_id: partId,
+        user_id: userId,
+        status: "joined",
+      })
+      .select("id, user_id, event_part_id")
+      .single();
+
+    if (insertError || !data) {
+      setBusy(null);
+      setError(insertError?.message ?? "参加者の追加に失敗しました");
+      return;
+    }
+
+    const nickname =
+      memberProfiles.find((p) => p.id === userId)?.nickname ?? "不明";
+    setParticipations((prev) => [
+      ...prev,
+      {
+        id: data.id,
+        user_id: data.user_id,
+        nickname,
+        event_part_id: partId,
+      },
+    ]);
+    if (userId === profile.id) {
+      setMyJoinedPartIds((prev) => new Set([...prev, partId]));
+    }
+    setParts((prev) =>
+      prev.map((p) =>
+        p.id === partId ? { ...p, joinedCount: p.joinedCount + 1 } : p,
+      ),
+    );
+    setAddUserByPart((prev) => ({ ...prev, [partId]: "" }));
+    setBusy(null);
+    refreshFromServer();
+  }
+
+  async function handleSaveFinalizer() {
+    if (!canSetFinalizer) return;
+    if (
+      finalizerDraft &&
+      !firstPartParticipantIds.has(finalizerDraft)
+    ) {
+      setError("立替者は一次会の参加者から選択してください");
+      return;
+    }
+    setError(null);
+    setBusy("finalizer");
+    const supabase = createClient();
+
+    const { data, error: rpcError } = await supabase.rpc("set_event_finalizer", {
+      p_event_id: event.id,
+      p_finalizer_id: finalizerDraft || null,
+    });
+
+    if (rpcError || !data) {
+      setBusy(null);
+      setError(rpcError?.message ?? "立替者の設定に失敗しました");
+      return;
+    }
+
+    setFinalizerId(data.finalized_by);
+    setFinalizerDraft(data.finalized_by ?? "");
+    setBusy(null);
+    refreshFromServer();
+  }
+
   async function handleCloseEvent() {
     if (!isOrganizer && !isAdmin) return;
     setBusy("close");
     const supabase = createClient();
-    await supabase.from("events").update({ status: "closed" }).eq("id", event.id);
+    const { error: updateError } = await supabase
+      .from("events")
+      .update({ status: "closed" })
+      .eq("id", event.id);
+
+    if (updateError) {
+      setBusy(null);
+      setError(updateError.message);
+      return;
+    }
+
     setStatus("closed");
+    setBusy(null);
+    refreshFromServer();
+  }
+
+  async function handleReopenEvent() {
+    if (!canReopen) return;
+    if (
+      !confirm(
+        "この企画を募集中に戻しますか？参加者が再度参加表明できるようになります。",
+      )
+    ) {
+      return;
+    }
+
+    setError(null);
+    setBusy("reopen");
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("events")
+      .update({ status: "open" })
+      .eq("id", event.id)
+      .eq("status", "closed");
+
+    if (updateError) {
+      setBusy(null);
+      setError(updateError.message);
+      return;
+    }
+
+    setStatus("open");
     setBusy(null);
     refreshFromServer();
   }
@@ -177,6 +353,15 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
     .map((p) => p.name)
     .join("・");
 
+  const showParticipantsBlock =
+    canManage ||
+    parts.some((part) =>
+      participations.some((p) => p.event_part_id === part.id),
+    );
+
+  const selectClass =
+    "min-w-0 flex-1 rounded-[var(--radius-input)] border border-line bg-[#34415A] px-3 py-2 text-sm text-txt outline-none focus:border-brass/50";
+
   return (
     <div className="flex flex-col gap-3">
       <Card className="flex flex-col gap-3">
@@ -198,9 +383,22 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
             {event.shop.name}
           </Link>
           {" ↗）"}
-          <br />
-          <span className="text-txt-muted">企画：{event.organizerNickname}</span>
         </p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line/80 pt-2.5 text-xs">
+          <span className="text-txt-muted">
+            企画{" "}
+            <span className="font-bold text-txt-2">{event.organizerNickname}</span>
+          </span>
+          <span className="text-line" aria-hidden>
+            ·
+          </span>
+          <span className="text-txt-muted">
+            立替{" "}
+            <span className="font-bold text-txt-2">
+              {finalizerNickname ?? "未設定"}
+            </span>
+          </span>
+        </div>
         {event.description && (
           <p className="whitespace-pre-wrap border-t border-line/80 pt-3 text-sm leading-relaxed text-txt-2">
             {event.description}
@@ -230,35 +428,86 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
         </Card>
       )}
 
-      {(isOrganizer || isAdmin || joinedAny) && (
-        <Link href={`/events/${event.id}/settlement`}>
-          <Button variant="outline">精算へ</Button>
-        </Link>
+      {(isOrganizer || isAdmin || canOpenSettlement) && (
+        <Card className="flex flex-col gap-2.5 py-3">
+          {(isOrganizer || isAdmin) && status === "open" && (
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/events/${event.id}/edit`}>
+                <Button variant="outline">編集</Button>
+              </Link>
+              <Button
+                variant="outline"
+                disabled={busy === "close"}
+                onClick={handleCloseEvent}
+              >
+                締切にする
+              </Button>
+              <Button
+                variant="danger"
+                disabled={busy === "delete"}
+                onClick={handleDelete}
+              >
+                削除
+              </Button>
+            </div>
+          )}
+
+          {(isOrganizer || isAdmin) && status === "closed" && (
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/events/${event.id}/edit`}>
+                <Button variant="outline">編集</Button>
+              </Link>
+              <Button
+                variant="outline"
+                disabled={busy === "reopen"}
+                onClick={handleReopenEvent}
+              >
+                募集中に戻す
+              </Button>
+              <Button
+                variant="danger"
+                disabled={busy === "delete"}
+                onClick={handleDelete}
+              >
+                削除
+              </Button>
+            </div>
+          )}
+
+          {(isOrganizer || isAdmin) &&
+            status !== "open" &&
+            status !== "closed" && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="danger"
+                disabled={busy === "delete"}
+                onClick={handleDelete}
+              >
+                削除
+              </Button>
+            </div>
+          )}
+
+          {canOpenSettlement && (
+            <div
+              className={
+                isOrganizer || isAdmin ? "border-t border-line/60 pt-2.5" : ""
+              }
+            >
+              <Link href={`/events/${event.id}/settlement`}>
+                <Button variant="outline" className="w-full">
+                  精算へ
+                </Button>
+              </Link>
+            </div>
+          )}
+        </Card>
       )}
 
-      {(isOrganizer || isAdmin) && status === "open" && (
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/events/${event.id}/edit`}>
-            <Button variant="outline">編集</Button>
-          </Link>
-          <Button variant="outline" disabled={busy === "close"} onClick={handleCloseEvent}>
-            締切にする
-          </Button>
-          <Button variant="outline" disabled={busy === "delete"} onClick={handleDelete}>
-            削除
-          </Button>
-        </div>
-      )}
-
-      {(isOrganizer || isAdmin) && status !== "open" && (
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" disabled={busy === "delete"} onClick={handleDelete}>
-            削除
-          </Button>
-        </div>
-      )}
-
-      <SectionTitle>参加パート</SectionTitle>
+      <SectionHeader
+        title="参加パート"
+        caption="自分が参加するパートを選びます"
+      />
 
       <div className="flex flex-col gap-2">
         {parts.map((part) => {
@@ -268,15 +517,10 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
           const showCancel = canCancelPart(status, userJoined);
 
           return (
-            <Card
+            <PartActionRow
               key={part.id}
-              className={`flex items-center justify-between gap-3 py-3 ${
-                userJoined
-                  ? "border-2 border-green/55 bg-green/[0.1]"
-                  : full && status === "open"
-                    ? "border border-line opacity-75"
-                    : ""
-              }`}
+              joined={userJoined}
+              dimmed={full && status === "open" && !userJoined}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -292,7 +536,7 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
                   )}
                 </div>
                 <p
-                  className={`mt-0.5 text-xs ${userJoined ? "text-txt-2" : "text-txt-muted"}`}
+                  className={`mt-0.5 text-[11px] ${userJoined ? "text-txt-2" : "text-txt-muted"}`}
                 >
                   ¥{part.fee_estimate.toLocaleString()}・{part.joinedCount}/
                   {part.capacity}名
@@ -330,67 +574,187 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
                   </Button>
                 )}
               </div>
-            </Card>
+            </PartActionRow>
           );
         })}
       </div>
 
-      {joinedAny && !isOrganizer && (
-        <Card className="border-2 border-brass/35 bg-card-2">
+      {joinedAny && (
+        <div className="rounded-[var(--radius-card)] border border-brass/20 bg-card-2/35 px-3 py-2.5">
           <SectionTitle>あなたの会費（見込み）</SectionTitle>
-          <p className="mt-2 font-display text-3xl font-semibold tracking-wide text-heading">
+          <p className="mt-1.5 font-display text-lg font-semibold tracking-wide text-heading">
             ¥{feeEstimate.toLocaleString()}
           </p>
-          <p className="mt-2 text-[11px] leading-relaxed text-txt-muted">
+          <p className="mt-0.5 text-[10px] leading-relaxed text-txt-muted">
             開催後に企画者が精算し、最終金額が確定します。
           </p>
-        </Card>
+        </div>
       )}
 
-      {parts.map((part) => {
-        const partPeople = participations.filter(
-          (p) => p.event_part_id === part.id,
-        );
-        if (partPeople.length === 0) return null;
-        return (
-          <div key={`people-${part.id}`}>
-            <SectionTitle>参加者（{part.name}）</SectionTitle>
-            <Card className="flex flex-col gap-1 py-2">
-              {partPeople.map((p) => (
+      {showParticipantsBlock && (
+        <>
+          <SectionHeader
+            title="参加者"
+            caption="各パートの参加メンバー一覧"
+          />
+
+          <div className="rounded-[var(--radius-card)] border border-line bg-card px-3 py-1.5">
+            {parts.map((part, partIndex) => {
+              const partPeople = participations.filter(
+                (p) => p.event_part_id === part.id,
+              );
+              const partUserIds = new Set(partPeople.map((p) => p.user_id));
+              const addableProfiles = memberProfiles.filter(
+                (p) => !partUserIds.has(p.id),
+              );
+              const partFull = isPartFull(part);
+              if (partPeople.length === 0 && !canManage) return null;
+
+              return (
                 <div
-                  key={p.id}
-                  className="flex items-center justify-between gap-2"
+                  key={`people-${part.id}`}
+                  className={
+                    partIndex > 0 ? "mt-2 border-t border-line/60 pt-2" : ""
+                  }
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-card-2 text-[10px] font-bold">
-                      {p.nickname.charAt(0)}
-                    </span>
-                    <span className="text-sm text-txt">{p.nickname}</span>
-                    {p.user_id === event.organizer_id && (
-                      <RoleChip label="企画者" />
-                    )}
-                    {event.finalizer_id && p.user_id === event.finalizer_id && (
-                      <RoleChip label="立替者" />
-                    )}
-                  </div>
-                  {(isOrganizer || isAdmin) &&
-                    p.user_id !== event.organizer_id &&
-                    status === "closed" && (
-                      <button
-                        type="button"
-                        className="text-xs text-txt-muted hover:text-red-400"
-                        disabled={busy === p.id}
-                        onClick={() => handleOrganizerRemove(p.id, part.id)}
+                  <p className="mb-1.5 font-display text-xs font-semibold tracking-[0.14em] text-brass/90">
+                    {part.name}
+                  </p>
+                  {partPeople.length === 0 ? (
+                    <p className="py-1.5 text-[11px] text-txt-muted">
+                      まだ参加者がいません
+                    </p>
+                  ) : (
+                    partPeople.map((p) => (
+                      <ParticipantRow key={p.id}>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[#5D6B89] text-[10px] font-bold text-txt">
+                            {p.nickname.charAt(0)}
+                          </span>
+                          <span className="text-xs text-txt">{p.nickname}</span>
+                          {p.user_id === event.organizer_id && (
+                            <RoleChip label="企画者" />
+                          )}
+                          {finalizerId && p.user_id === finalizerId && (
+                            <RoleChip label="立替者" />
+                          )}
+                        </div>
+                        {canManage && p.user_id !== event.organizer_id && (
+                          <button
+                            type="button"
+                            className="text-[11px] text-txt-muted hover:text-red-400"
+                            disabled={busy === p.id}
+                            onClick={() =>
+                              handleOrganizerRemove(p.id, part.id)
+                            }
+                          >
+                            外す
+                          </button>
+                        )}
+                      </ParticipantRow>
+                    ))
+                  )}
+                  {canManage && partFull && (
+                    <p className="py-1.5 text-[10px] text-txt-muted">
+                      定員に達しているため追加できません
+                    </p>
+                  )}
+                  {canManage && !partFull && addableProfiles.length > 0 && (
+                    <div className="mt-1 flex gap-2 py-1.5">
+                      <select
+                        className={selectClass}
+                        value={addUserByPart[part.id] ?? ""}
+                        onChange={(e) =>
+                          setAddUserByPart((prev) => ({
+                            ...prev,
+                            [part.id]: e.target.value,
+                          }))
+                        }
                       >
-                        外す
-                      </button>
-                    )}
+                        <option value="">メンバーを追加…</option>
+                        {addableProfiles.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.nickname}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        variant="outline"
+                        className="shrink-0 text-[11px]"
+                        disabled={
+                          !addUserByPart[part.id] ||
+                          busy === `add-${part.id}-${addUserByPart[part.id]}`
+                        }
+                        onClick={() =>
+                          handleOrganizerAdd(
+                            addUserByPart[part.id] ?? "",
+                            part.id,
+                          )
+                        }
+                      >
+                        追加
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </Card>
+              );
+            })}
           </div>
-        );
-      })}
+        </>
+      )}
+
+      {canSetFinalizer && (
+        <div className="flex flex-col gap-2">
+          <SectionHeader
+            title="立替者"
+            caption="精算担当（一次会の参加者から指定）"
+          />
+
+          <div className="rounded-[var(--radius-card)] border border-brass/25 border-l-[3px] border-l-brass bg-card-2/55 px-3 py-3">
+            {finalizerId && !firstPartParticipantIds.has(finalizerId) && (
+              <p className="mb-2 text-[11px] text-amber-400">
+                現在の立替者は一次会に参加していません。「未設定」に変更できます。
+              </p>
+            )}
+            {firstPartParticipantOptions.length === 0 ? (
+              <p className="text-[11px] text-txt-muted">
+                一次会の参加者がいません
+              </p>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-txt-2">
+                  精算担当メンバー
+                </label>
+                <div className="flex items-center gap-2">
+                  <select
+                    className={selectClass}
+                    value={finalizerDraft}
+                    onChange={(e) => setFinalizerDraft(e.target.value)}
+                  >
+                    <option value="">未設定</option>
+                    {firstPartParticipantOptions.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nickname}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    variant="outline"
+                    className="shrink-0 px-3 text-[11px]"
+                    disabled={
+                      busy === "finalizer" ||
+                      finalizerDraft === (finalizerId ?? "")
+                    }
+                    onClick={handleSaveFinalizer}
+                  >
+                    保存
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <CommentSection
         eventId={event.id}
@@ -404,11 +768,58 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
   );
 }
 
+function SectionHeader({
+  title,
+  caption,
+}: {
+  title: string;
+  caption: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <SectionTitle>{title}</SectionTitle>
+      <p className="text-[10px] leading-relaxed text-txt-muted">{caption}</p>
+    </div>
+  );
+}
+
 function RoleChip({ label }: { label: string }) {
   return (
     <span className="inline-flex rounded-lg border border-brass/40 bg-brass/15 px-1.5 py-0.5 text-[9px] font-bold text-brass">
       {label}
     </span>
+  );
+}
+
+function PartActionRow({
+  children,
+  joined,
+  dimmed,
+}: {
+  children: ReactNode;
+  joined: boolean;
+  dimmed?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-[10px] border px-3 py-2.5 ${
+        joined
+          ? "border-2 border-green/55 bg-green/[0.08]"
+          : dimmed
+            ? "border-line bg-card opacity-75"
+            : "border-line bg-card"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ParticipantRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-2 border-b border-dashed border-line/70 py-2 last:border-b-0">
+      {children}
+    </div>
   );
 }
 
@@ -553,7 +964,7 @@ function CommentSection({
                       )}
                       <button
                         type="button"
-                        className="block w-full px-3 py-1 text-left text-xs text-red-400 hover:bg-card-2"
+                        className="block w-full px-3 py-1 text-left text-xs text-[#E8694F] hover:bg-shu/10"
                         onClick={() => handleDelete(c.id)}
                       >
                         削除

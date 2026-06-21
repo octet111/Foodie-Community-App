@@ -421,7 +421,7 @@ MVP〜フェーズ2の要件に必要な論点はすべて決定済み。
 
 用語統一: 本書では「企画者（幹事）」に表記を統一する（同一概念）。
 
-残課題: **MVP 実装はフェーズ9 UIブラッシュアップまで反映済み**（2026-06-21）。本番前: P8-6 Vercel デプロイ、P8-7 全 AC E2E 網羅、Resend ドメイン認証、`APP_URL` 本番化。未適用 migration があれば `npx supabase db push`。
+残課題: **MVP 実装はフェーズ11 機能ブラッシュアップ #3 まで反映済み**（2026-06-21）。本番前: P8-6 Vercel デプロイ、P8-7 全 AC E2E 網羅、Resend ドメイン認証、`APP_URL` 本番化。未適用 migration があれば `npx supabase db push`（**`20250624000001`** 含む）。
 
 ---
 
@@ -502,3 +502,26 @@ MVP〜フェーズ2の要件に必要な論点はすべて決定済み。
 | 精算と実績 | 精算確定で `events.status → held`、確定取消で `held → closed` |
 | DB | `20250623000002_settlement_finalize_only_held.sql`（`20250623000001` は上書き済み） |
 | 実装詳細 | `implementation_spec.md` §12、`cursor_implementation_plan_v1.0.md` フェーズ10 |
+
+---
+
+## 15. フェーズ11 機能ブラッシュアップ #3（2026-06-21）
+
+| 区分 | 内容 |
+|---|---|
+| 参加者の手動管理 | 企画者・admin が S05 で参加者を追加・削除（`open`/`closed`）。定員超過不可 |
+| 立替者の指定 | 一次会参加者から選択。RPC `set_event_finalizer`。参加者セクションの下に UI |
+| 精算アクセス | 企画者・admin・立替者が精算画面にアクセス |
+| 締切の取り消し | `closed` → `open`「募集中に戻す」（企画者・admin） |
+| S05 UI 整理 | 参加パート（アクション行）／参加者（名簿）／立替者（設定パネル）の視覚分離 |
+| 会費見込み | 参加表明済み全員（企画者含む）。コンパクト表示 |
+| 一覧残数 | 残り0人 →「満員」 |
+| 削除ボタン | `danger` バリアント（朱色）で破壊的操作を明示 |
+| DB | `20250624000001_set_event_finalizer.sql` |
+| 実装詳細 | `implementation_spec.md` §13、`cursor_implementation_plan_v1.0.md` フェーズ11 |
+
+### 未着手（検討中）
+
+| 区分 | 内容 |
+|---|---|
+| プロフィールアイコン | `profiles.avatar_path` + Storage バケットは未実装。現状はニックネーム頭文字 |

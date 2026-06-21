@@ -11,8 +11,10 @@
 | 7 | リマインド・運用 | ✅ 2026-06-20 |
 | 8 | マイページ・設定・仕上げ | ✅ 部分 2026-06-21 |
 | 9 | UIブラッシュアップ（ナビ・設定拡張・リマインド4日前・開催日時） | ✅ 2026-06-21 |
+| 10 | 機能ブラッシュアップ（ホーム分離・実績・店メモ・企画UI） | ✅ 2026-06-21 |
+| 11 | 機能ブラッシュアップ #3（参加者管理・立替者・S05 UI・締切戻し） | ✅ 2026-06-21 |
 
-詳細は `Requirements-docs_and_Design/cursor_implementation_plan_v1.0.md` を参照。`implementation_spec.md` §8–§11（フェーズ6–9）。
+詳細は `Requirements-docs_and_Design/cursor_implementation_plan_v1.0.md` を参照。`implementation_spec.md` §8–§13（フェーズ6–11）。
 
 ## ディレクトリ構成
 
@@ -42,13 +44,7 @@ Authentication → URL Configuration:
 
 ### パスワードリセットのフローについて（クロスブラウザ対応）
 
-`@supabase/ssr` のブラウザクライアントは PKCE フロー固定で、`?code=` 方式は
-「リセットを依頼したブラウザ」でしか `code_verifier` を持たない。メールのリンクは
-別ブラウザ（既定ブラウザ等）で開かれることが多く、その場合 PKCE では検証に失敗して
-ホーム画面へ戻されてしまう。
-
-そこで `src/app/(auth)/reset/page.tsx` では、リセットメール送信時だけ
-`flowType: "implicit"` のクライアントを使い、`#access_token=...&type=recovery` を
+　owType: "implicit"` のクライアントを使い、`#access_token=...&type=recovery` を
 ハッシュで返す方式にしている（`code_verifier` 不要のため別ブラウザ/別端末でも成立）。
 `redirectTo` は `/reset/update` を直接指し、`reset/update` ページがハッシュの
 トークンで `setSession` してから新パスワードを設定する。
@@ -239,3 +235,33 @@ npx playwright test me auth  # フェーズ8 重点
 - **P8-6**: Vercel デプロイ（環境変数 + Auth Redirect URLs）
 - **P8-7**: 要件定義 §4.1 全 AC の Playwright 網羅
 - Resend 独自ドメイン認証、`APP_URL` 本番化
+
+## フェーズ10–11: 機能ブラッシュアップ（2026-06-21）
+
+### フェーズ10（概要）
+
+- ホーム `/` 分離、企画一覧 `/events`、実績 `/records`
+- 店メモ、企画一覧残数バッジ、参加取消ロジック修正、精算確定と実績連動
+- 詳細: `implementation_spec.md` §12
+
+### フェーズ11 機能ブラッシュアップ #3
+
+| 区分 | 内容 |
+|---|---|
+| 参加者の手動管理 | 企画者・admin が S05 で参加者を追加・削除（`open` / `closed`）。定員超過は不可 |
+| 立替者の指定 | 企画者・admin が一次会参加者から `set_event_finalizer` RPC で指定。参加者一覧の下に配置 |
+| 精算アクセス | 企画者・admin・立替者が精算画面にアクセス（`canAccessSettlementPage`） |
+| 締切の取り消し | `closed` → `open`「募集中に戻す」（企画者・admin。`held` は不可） |
+| S05 UI | 参加パート（アクション行）／参加者（名簿カード）／立替者（真鍮左線パネル）で視覚分離 |
+| 会費見込み | 参加表明済み全員（企画者含む）。コンパクト表示（`text-lg`） |
+| 一覧残数 | 一次会残り **0人** は「満員」表示 |
+| 削除ボタン | `Button` の `danger` バリアント（朱色）。企画削除・コメント削除等 |
+| DB | `20250624000001_set_event_finalizer.sql`（`set_event_finalizer`, `ensure_settlement` 更新） |
+
+### マイグレーション（未適用の場合）
+
+```bash
+npx supabase db push
+```
+
+未適用の例: `20250623000001` / `20250623000002` / **`20250624000001`**

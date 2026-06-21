@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type ButtonVariant = "primary" | "outline" | "disabled";
+type ButtonVariant = "primary" | "outline" | "danger" | "disabled";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
@@ -12,6 +12,8 @@ const variantClass: Record<ButtonVariant, string> = {
     "bg-inv text-[var(--color-invert-txt)] border border-transparent hover:opacity-90",
   outline:
     "bg-transparent text-txt border border-[#5D6B89] hover:border-brass/50",
+  danger:
+    "bg-transparent text-[#E8694F] border border-shu/45 hover:border-shu/70 hover:bg-shu/10",
   disabled: "bg-card-2 text-txt-muted border border-line cursor-not-allowed",
 };
 

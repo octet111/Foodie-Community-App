@@ -32,6 +32,27 @@ export function canCancelPart(
   return userJoined && eventStatus === "open";
 }
 
+/** 企画者・管理者が参加者を手動で追加・削除できる期間（開催前） */
+export function canManageParticipations(
+  eventStatus: EventStatus,
+  isOrganizer: boolean,
+  isAdmin: boolean,
+): boolean {
+  return (
+    (isOrganizer || isAdmin) &&
+    (eventStatus === "open" || eventStatus === "closed")
+  );
+}
+
+/** 締切済み企画を募集中に戻せるか（開催済み・アーカイブは不可） */
+export function canReopenEvent(
+  eventStatus: EventStatus,
+  isOrganizer: boolean,
+  isAdmin: boolean,
+): boolean {
+  return (isOrganizer || isAdmin) && eventStatus === "closed";
+}
+
 export function sumFeeEstimate(
   parts: PartStats[],
   joinedPartIds: Set<string>,
