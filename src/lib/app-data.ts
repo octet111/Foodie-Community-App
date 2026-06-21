@@ -3,6 +3,7 @@ import {
   DEFAULT_COMMUNITY_NAME,
   DEFAULT_LOGO_CHAR,
 } from "@/lib/constants";
+import type { NotificationItem } from "@/lib/notifications-data";
 
 export type CommunitySettings = {
   name: string;
@@ -54,4 +55,24 @@ export async function getCurrentProfile(): Promise<AppProfile | null> {
     nickname: data.nickname,
     role: data.role,
   };
+}
+
+export async function getNotifications(): Promise<NotificationItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("notifications")
+    .select("id, title, body, created_at, read_at, event_id")
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  if (!data) return [];
+
+  return data.map((row) => ({
+    id: row.id,
+    title: row.title,
+    body: row.body,
+    createdAt: row.created_at,
+    read: row.read_at !== null,
+    eventId: row.event_id,
+  }));
 }

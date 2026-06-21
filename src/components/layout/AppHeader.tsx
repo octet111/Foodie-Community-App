@@ -1,14 +1,21 @@
 import Link from "next/link";
 import type { AppProfile, CommunitySettings } from "@/lib/app-data";
+import type { NotificationItem } from "@/lib/notifications-data";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 
 type AppHeaderProps = {
   community: CommunitySettings;
   profile: AppProfile | null;
+  notifications: NotificationItem[];
   title?: string;
 };
 
-export function AppHeader({ community, profile, title }: AppHeaderProps) {
+export function AppHeader({
+  community,
+  profile,
+  notifications,
+  title,
+}: AppHeaderProps) {
   const displayTitle = title ?? community.name;
 
   return (
@@ -19,7 +26,7 @@ export function AppHeader({ community, profile, title }: AppHeaderProps) {
       <h1 className="min-w-0 flex-1 truncate font-display text-[15px] tracking-[var(--tracking-cname)] text-heading">
         {displayTitle}
       </h1>
-      <NotificationBell />
+      <NotificationBell initialItems={notifications} />
       <Link
         href="/me"
         aria-label={profile?.nickname ?? "マイページ"}

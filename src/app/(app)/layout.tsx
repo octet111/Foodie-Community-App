@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import {
   getCommunitySettings,
   getCurrentProfile,
+  getNotifications,
 } from "@/lib/app-data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,13 +21,14 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  const [community, profile] = await Promise.all([
+  const [community, profile, notifications] = await Promise.all([
     getCommunitySettings(),
     getCurrentProfile(),
+    getNotifications(),
   ]);
 
   return (
-    <AppShell community={community} profile={profile}>
+    <AppShell community={community} profile={profile} notifications={notifications}>
       {children}
     </AppShell>
   );

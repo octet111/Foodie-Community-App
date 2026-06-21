@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import type { AppProfile, CommunitySettings } from "@/lib/app-data";
+import type { NotificationItem } from "@/lib/notifications-data";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { BottomNav, SideNav } from "@/components/layout/AppNav";
 
 type AppShellProps = {
   community: CommunitySettings;
   profile: AppProfile | null;
+  notifications: NotificationItem[];
   headerTitle?: string;
   children: ReactNode;
 };
@@ -13,6 +15,7 @@ type AppShellProps = {
 export function AppShell({
   community,
   profile,
+  notifications,
   headerTitle,
   children,
 }: AppShellProps) {
@@ -23,6 +26,7 @@ export function AppShell({
         <AppHeader
           community={community}
           profile={profile}
+          notifications={notifications}
           title={headerTitle}
         />
         <main className="flex-1 overflow-y-auto p-[var(--space-body-pad)]">
