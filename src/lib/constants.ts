@@ -40,11 +40,30 @@ export const EVENT_STATUS_LABELS: Record<
   archived: { label: "アーカイブ", variant: "archived" },
 };
 
+export type NavIconName = "events" | "shops" | "records" | "me" | "settings";
+
 export const NAV_ITEMS = [
-  { href: "/", label: "企画", match: (p: string) => p === "/" || p.startsWith("/events/") && !p.startsWith("/events/new") },
-  { href: "/shops", label: "店", match: (p: string) => p.startsWith("/shops") },
-  { href: "/events/new", label: "作成", fab: true, match: (p: string) => p.startsWith("/events/new") },
-  { href: "/me", label: "マイページ", match: (p: string) => p === "/me" || p.startsWith("/settings") },
+  {
+    href: "/events",
+    label: "企画",
+    icon: "events" as const,
+    match: (p: string) => p === "/events" || p.startsWith("/events/"),
+  },
+  { href: "/shops", label: "店", icon: "shops" as const, match: (p: string) => p.startsWith("/shops") },
+  {
+    href: "/records",
+    label: "実績",
+    icon: "records" as const,
+    match: (p: string) => p === "/records",
+  },
+  { href: "/me", label: "マイページ", icon: "me" as const, match: (p: string) => p === "/me" },
+  {
+    href: "/settings",
+    label: "設定",
+    icon: "settings" as const,
+    adminOnly: true,
+    match: (p: string) => p.startsWith("/settings"),
+  },
 ] as const;
 
 export const DEFAULT_COMMUNITY_NAME = "美食倶楽部";

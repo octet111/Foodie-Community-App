@@ -36,6 +36,7 @@ export type CommentRow = {
 export type EventDetail = EventListItem & {
   description: string | null;
   organizer_id: string;
+  finalizer_id: string | null;
   participations: ParticipationRow[];
   comments: CommentRow[];
   myJoinedPartIds: string[];
@@ -87,16 +88,59 @@ const EVENT_SELECT = `
   )
 `;
 
+async function getFinalizedSettlementEventIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("settlements")
+    .select("event_id")
+    .eq("status", "finalized");
+  if (error || !data) return [];
+  return data.map((row) => row.event_id);
+}
+
+function mapCompletedEventListItem(row: RawEvent): EventListItem {
+  return { ...mapEventListItem(row), status: "held" };
+}
+
 export async function getEventsList(): Promise<EventListItem[]> {
   const supabase = await createClient();
+  const finalizedEventIds = await getFinalizedSettlementEventIds(supabase);
+
+  let query = supabase
+    .from("events")
+    .select(EVENT_SELECT)
+    .is("deleted_at", null)
+    .in("status", ["open", "closed"]);
+
+  if (finalizedEventIds.length > 0) {
+    query = query.not(
+      "id",
+      "in",
+      `(${finalizedEventIds.map((id) => `"${id}"`).join(",")})`,
+    );
+  }
+
+  const { data, error } = await query.order("held_at", { ascending: true });
+
+  if (error || !data) return [];
+  return (data as unknown as RawEvent[]).map(mapEventListItem);
+}
+
+export async function getCompletedEventsList(): Promise<EventListItem[]> {
+  const supabase = await createClient();
+  const finalizedEventIds = await getFinalizedSettlementEventIds(supabase);
+  if (finalizedEventIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from("events")
     .select(EVENT_SELECT)
     .is("deleted_at", null)
-    .order("held_at", { ascending: true });
+    .in("id", finalizedEventIds)
+    .order("held_at", { ascending: false });
 
   if (error || !data) return [];
-  return (data as unknown as RawEvent[]).map(mapEventListItem);
+  return (data as unknown as RawEvent[]).map(mapCompletedEventListItem);
 }
 
 export async function getEventById(
@@ -155,10 +199,17 @@ export async function getEventById(
     .filter((p) => p.user_id === userId)
     .map((p) => p.event_part_id);
 
+  const { data: settlement } = await supabase
+    .from("settlements")
+    .select("finalized_by")
+    .eq("event_id", id)
+    .maybeSingle();
+
   return {
     ...base,
     description: row.description,
     organizer_id: row.organizer_id,
+    finalizer_id: settlement?.finalized_by ?? null,
     participations,
     comments: commentRows,
     myJoinedPartIds,

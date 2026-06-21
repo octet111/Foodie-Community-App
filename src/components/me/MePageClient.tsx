@@ -229,7 +229,7 @@ export function MePageClient({ profile, data }: MePageClientProps) {
       {data.upcoming.length === 0 ? (
         <EmptyHint>
           参加予定の企画はありません。
-          <Link href="/" className="ml-1 text-brass underline-offset-2 hover:underline">
+          <Link href="/events" className="ml-1 text-brass underline-offset-2 hover:underline">
             企画一覧を見る
           </Link>
         </EmptyHint>
@@ -314,21 +314,6 @@ export function MePageClient({ profile, data }: MePageClientProps) {
               </Button>
             </SpreadCard>
           ))}
-        </>
-      )}
-
-      {profile.role === "admin" && (
-        <>
-          <SectionTitle>管理者</SectionTitle>
-          <Link
-            href="/settings"
-            className="block rounded-[var(--radius-card)] border border-dashed border-line bg-card px-3 py-2.5 text-sm text-txt-2 transition-colors hover:border-brass/30"
-          >
-            <span className="flex items-center justify-between">
-              コミュニティ設定
-              <span aria-hidden>›</span>
-            </span>
-          </Link>
         </>
       )}
 

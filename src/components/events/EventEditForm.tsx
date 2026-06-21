@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { EventDetail } from "@/lib/events-data";
-import { isoToLocalDatetime, localDatetimeToIso } from "@/lib/event-dates";
+import {
+  combineLocalDatetime,
+  isoToHeldAtFields,
+  localDatetimeToIso,
+} from "@/lib/event-dates";
+import { EventHeldAtFields } from "@/components/events/EventHeldAtFields";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -27,7 +32,9 @@ export function EventEditForm({ event }: EventEditFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description ?? "");
-  const [heldAt, setHeldAt] = useState(isoToLocalDatetime(event.held_at));
+  const initialHeldAt = isoToHeldAtFields(event.held_at);
+  const [heldDate, setHeldDate] = useState(initialHeldAt.date);
+  const [heldTime, setHeldTime] = useState(initialHeldAt.time);
   const [location, setLocation] = useState(event.location ?? "");
   const [parts, setParts] = useState<PartDraft[]>(
     event.parts.map((p) => ({
@@ -48,10 +55,11 @@ export function EventEditForm({ event }: EventEditFormProps) {
       setError("タイトルを入力してください");
       return;
     }
-    if (!heldAt) {
+    if (!heldDate || !heldTime) {
       setError("開催日時を入力してください");
       return;
     }
+    const heldAt = combineLocalDatetime(heldDate, heldTime);
     const partError = validateParts(parts);
     if (partError) {
       setError(partError);
@@ -151,24 +159,24 @@ export function EventEditForm({ event }: EventEditFormProps) {
         />
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <label className="mb-1 block text-xs text-txt-muted">開催日時</label>
-          <input
-            type="datetime-local"
-            className={inputClass}
-            value={heldAt}
-            onChange={(e) => setHeldAt(e.target.value)}
-          />
-        </div>
-        <div className="flex-1">
-          <label className="mb-1 block text-xs text-txt-muted">場所</label>
-          <input
-            className={inputClass}
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-          />
-        </div>
+      <EventHeldAtFields
+        date={heldDate}
+        time={heldTime}
+        onDateChange={setHeldDate}
+        onTimeChange={setHeldTime}
+        idPrefix="event-edit-held"
+      />
+
+      <div>
+        <label htmlFor="event-edit-location" className="mb-1 block text-xs text-txt-muted">
+          場所
+        </label>
+        <input
+          id="event-edit-location"
+          className={inputClass}
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
       </div>
 
       <SectionTitle>参加パート</SectionTitle>

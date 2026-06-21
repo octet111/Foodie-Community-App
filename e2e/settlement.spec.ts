@@ -57,7 +57,8 @@ test.describe("settlement", () => {
     await expect(orgPage).toHaveURL(/\/events\/new\?shopId=/);
     await expect(orgPage.getByText("選択済 ✓")).toBeVisible();
     await orgPage.getByPlaceholder("鮨かね田を貸切る会").fill(eventTitle);
-    await orgPage.getByLabel("開催日時").fill("2030-12-31T18:00");
+    await orgPage.getByLabel("開催日").fill("2030-12-31");
+    await orgPage.getByLabel(/開催時刻/).selectOption("18:00");
     await orgPage.getByLabel("一次会の定員").fill("10");
     await orgPage.getByLabel("想定費用").first().fill("10000");
     await orgPage.getByRole("button", { name: "＋ パートを追加" }).click();

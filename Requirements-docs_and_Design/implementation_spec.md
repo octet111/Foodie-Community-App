@@ -47,24 +47,27 @@
 - pg_cron（毎時0分 JST）→ reminders から `remind_at <= now() and sent_at is null` を取得
 - アプリ内通知（`notifications` テーブル）作成＋Resendでメール送信 → `sent_at` 更新
 - 送信失敗時: リトライなし。管理者宛に失敗通知メール1通
-- reminders生成: 企画公開時に前日18:00と当日9:00の2行をinsert（`create_event_reminders` RPC）
+- reminders生成: 企画公開時に**4日前**（community_settings の時刻）と当日9:00の2行をinsert（`create_event_reminders` RPC）
 - 認証: `CRON_SECRET`（`x-cron-secret` ヘッダ）または `SERVICE_ROLE_KEY`。`verify_jwt = false`
 - 冪等: `sent_at` 楽観ロック（更新成功行のみ処理）
 - 実装: `supabase/functions/send-reminders/`、メールテンプレート `email-template.ts`
+- **2026-06-21 拡張**: `community_settings` の件名/本文テンプレを参照。`test_email` ボディで単発テスト送信可。Resend サンドボックス（`onboarding@resend.dev`）時は許可アドレス以外をスキップ（403 をエラー扱いしない）
 
 ## 5. 画面とルーティング
 
 | 画面 | パス |
 |---|---|
 | S01-03 認証 | /login /signup /reset |
-| S04 企画一覧 | /（リスト・カレンダー切替） |
+| ホーム | `/`（企画一覧・店リストへの導線） |
+| S04 企画一覧 | `/events`（リスト・カレンダー切替。募集中・締切のみ） |
+| 実績リスト | `/records`（精算確定済み企画のみ） |
 | S05 企画詳細 | /events/[id]（未参加/参加済み/企画者で表示分岐） |
 | S06 企画作成・編集 | /events/new /events/[id]/edit |
 | S07 店リスト | /shops（行きたい/確保できるタブ） |
-| S08 店詳細 | /shops/[id] |
+| S08 店詳細 | /shops/[id]（行きたいメモ編集あり） |
 | S09 精算管理 | /events/[id]/settlement（権限で全件/本人明細を出し分け） |
 | S10 マイページ | /me |
-| S11 設定 | /settings（admin限定） |
+| S11 設定 | /settings（admin限定）。サブ: /settings/reminders /settings/email-template |
 
 ## 6. 実装フェーズ（推奨順）
 
@@ -74,7 +77,7 @@
 4. **企画**: S04/S05/S06（events/event_parts/participations、定員締切ロジック）
 5. **リマインド**: reminders生成＋send-reminders＋pg_cron — **完成（2026-06-20）**
 6. **精算**: S09（割り勘計算・確定/取消・支払チェック）— **完成（2026-06-16）**
-7. **設定・仕上げ**: S10/S11、カレンダー表示、レスポンシブ調整
+7. **設定・仕上げ**: S10/S11、カレンダー表示、レスポンシブ調整 — **部分完成（2026-06-21）** §10 参照。**UIブラッシュアップ（2026-06-21）** §11 参照。**機能ブラッシュアップ（2026-06-21）** §12 参照。残: Vercel デプロイ、全 AC E2E
 
 ## 7. 受け入れテスト
 
@@ -200,3 +203,195 @@
 - **メールテンプレート**: React Email パッケージは未導入。HTML テンプレートを `email-template.ts` に単一ファイルで実装（Resend API 直叩き）
 - **CI バックアップ**: `supabase link` ではなく `--db-url` 直結 + パスワード URL エンコード（特殊文字対応）
 - **Resend テスト制限**: E2E 用架空メール宛は 403 が正常。本番ドメイン or 登録者メールで検証
+
+---
+
+## 10. フェーズ8 実装サマリ（2026-06-21・部分完成）
+
+### 10.1 画面
+
+| 画面 | パス | 内容 |
+|---|---|---|
+| S10 マイページ | `/me` | プロフィール編集、企画中/参加予定/未払い/ストック・宣言、ログアウト |
+| S11 コミュニティ設定 | `/settings` | admin のみ。名前・ロゴ・振込先、メンバー admin 付与/剥奪 |
+
+### 10.2 主要ファイル
+
+| 区分 | パス |
+|---|---|
+| データ | `src/lib/me-data.ts`, `src/lib/me-format.ts`, `src/lib/settings-data.ts` |
+| UI | `src/components/me/MePageClient.tsx`, `src/components/settings/SettingsPageClient.tsx` |
+| 認可 | `src/proxy.ts`（`/settings` admin チェック） |
+| Storage | `src/lib/storage.ts`（`uploadCommunityLogo`, `getCommunityLogoUrl`） |
+| ヘッダー | `src/components/layout/AppHeader.tsx`（ロゴ画像表示） |
+
+### 10.3 DB
+
+| 項目 | 内容 |
+|---|---|
+| migration | `20250621000001_community_settings_seed.sql` |
+| 内容 | `community_settings` 初期行（`美食倶楽部`）、admin の INSERT ポリシー |
+
+### 10.4 仕上げ（P8-3〜5）
+
+| 項目 | 内容 |
+|---|---|
+| レスポンシブ | `AppShell` `min-w-0` / `overflow-x-hidden` |
+| 空状態 | マイページ各セクション、企画一覧に初手導線 |
+| メタ | title テンプレート、`public/icon.svg`、主要ページ `metadata` |
+
+### 10.5 テスト
+
+| 項目 | 内容 |
+|---|---|
+| 新規 | `e2e/me.spec.ts`（表示・ニックネーム編集・ログアウト・非 admin settings 拒否） |
+| 更新 | `e2e/auth.spec.ts`（マイページ経由ログアウト） |
+| 状態 | auth / shops / events / settlement / me — 主要フロー緑（2026-06-21） |
+
+### 10.6 未完了（本番前）
+
+| タスク | 内容 |
+|---|---|
+| P8-6 | Vercel デプロイ（⚑ 人間作業） |
+| P8-7 | §4.1 全 AC の Playwright 網羅 |
+| その他 | Lighthouse Accessibility 正式計測、Resend ドメイン、`APP_URL` 本番化 |
+
+---
+
+## 11. フェーズ9 UIブラッシュアップ（2026-06-21）
+
+### 11.1 ナビ・導線
+
+| 項目 | 内容 |
+|---|---|
+| ナビ項目 | 企画 `/events` / 店 `/shops` / **実績** `/records` / マイページ `/me` / 設定 `/settings`（admin のみ） |
+| アイコン | `src/components/layout/NavIcon.tsx` — events / shops / **records** / me / settings |
+| 企画作成 | 企画一覧上部「＋ 企画を作成」（`EventsPageClient`）。ナビ FAB は廃止 |
+| マイページ | 設定リンク削除。admin はナビの「設定」からアクセス |
+
+> **2026-06-21 追記（§12）**: ホーム `/` をナビ外のハブ画面に分離。ナビ「企画」は `/events` へ。実績タブ追加。
+
+### 11.2 設定画面（S11 拡張）
+
+| パス | 内容 |
+|---|---|
+| `/settings` | コミュニティ名・ロゴ・振込先、メンバー一覧（UUID 表示）+ admin 付与/剥奪 |
+| `/settings/reminders` | 先行（4日前）・当日リマインドのデフォルト送信時刻 |
+| `/settings/email-template` | リマインドメール件名/本文テンプレ（プレースホルダ `{{nickname}}` 等） |
+
+| 区分 | パス |
+|---|---|
+| UI | `SettingsSubNav`, `ReminderSettingsClient`, `EmailTemplateSettingsClient` |
+| ロジック | `src/lib/reminder-templates.ts`（`ADVANCE_REMINDER_DAYS = 4`） |
+| データ | `src/lib/settings-data.ts` 拡張 |
+
+### 11.3 開催日時（S06）
+
+| 項目 | 内容 |
+|---|---|
+| UI | `EventHeldAtFields` — 開催日（`type="date"`）+ 開催時刻（`<select>` 10分刻み） |
+| 選択肢 | `EVENT_HELD_AT_TIME_OPTIONS` — 00:00〜23:50（144件） |
+| ユーティリティ | `splitLocalDatetime`, `combineLocalDatetime`, `isoToHeldAtFields`（`src/lib/event-dates.ts`） |
+| テスト | `src/lib/event-dates.test.ts` |
+
+### 11.4 リマインド仕様変更
+
+| 項目 | 変更前 | 変更後 |
+|---|---|---|
+| 先行リマインド | 開催前日 18:00 JST | **開催4日前** 18:00 JST（時刻は settings で変更可） |
+| 当日リマインド | 開催当日 09:00 JST | 変更なし |
+| メール文言 | 固定 HTML | DB テンプレ or デフォルト（`reminder-templates.ts` / `email-template.ts`） |
+
+### 11.5 DB マイグレーション
+
+| migration | 内容 |
+|---|---|
+| `20250622000001_community_reminder_email_settings.sql` | `community_settings` にリマインド時刻・メールテンプレ列追加。`create_event_reminders` が settings 時刻を参照 |
+| `20250622000002_reminder_advance_four_days.sql` | 先行リマインドを前日 → 4日前に変更 |
+
+### 11.6 Edge Function 更新
+
+| 項目 | 内容 |
+|---|---|
+| テンプレート | `email_reminder_subject_template` / `email_reminder_body_template` を settings から読込 |
+| テスト送信 | POST body `{ "test_email": "..." }` で単発送信（任意 `event_id`） |
+| Resend 制限 | サンドボックス送信元時、未許可宛先はスキップ（管理者失敗通知は送る） |
+
+### 11.7 テスト
+
+| 種別 | 内容 |
+|---|---|
+| ユニット | `reminder-templates.test.ts`（7件）、`event-dates.test.ts`（3件） |
+| E2E | `events.spec.ts` / `settlement.spec.ts` — 開催日 fill + 時刻 selectOption |
+| 手動 | `t.noguchi111@gmail.com` 宛テスト送信。E2E ユーザー宛 403 は Resend 制限として正常 |
+
+---
+
+## 12. フェーズ10 機能ブラッシュアップ（2026-06-21）
+
+ログイン後導線・店メモ・実績リスト・企画一覧/詳細の UI・参加取消ロジックを拡張。
+
+### 12.1 ホーム・ナビ・ルーティング
+
+| 項目 | 内容 |
+|---|---|
+| ホーム `/` | `HomePageClient` — 「企画一覧」「店リスト」への導線ボタン（ナビタブには含めない） |
+| 企画一覧 | `/events` — `getEventsList()` は `open` / `closed` のみ。精算確定済みは除外 |
+| 実績リスト | `/records` — `getCompletedEventsList()` は `settlements.status = finalized` の企画のみ |
+| ナビ | 企画 → `/events`、店 → `/shops`、**実績** → `/records`、マイページ、設定（admin） |
+| 実装 | `src/app/(app)/page.tsx`, `events/page.tsx`, `records/page.tsx`, `constants.ts` NAV_ITEMS |
+
+### 12.2 店リスト・店詳細（S07/S08）
+
+| 項目 | 内容 |
+|---|---|
+| 店追加ボタン | S07 上部に primary 全幅「＋ 店を追加（URL貼付）」（S04 企画作成ボタンと同配置） |
+| 行きたいメモ | `stocks.memo`。入力は **店追加モーダル** と **S08 店詳細**（自分がストック済みの店のみ） |
+| 店リスト表示 | メモはテキスト表示のみ（一覧に編集ボタンは置かない） |
+| 実装 | `ShopAddModal`, `ShopDetailClient`, `getUserStockForShop`, `ShopStockCard` |
+
+### 12.3 実績リストの判定
+
+| 項目 | 内容 |
+|---|---|
+| 表示条件 | 精算レコードがあり `settlements.status = finalized` の企画 |
+| 企画 status | 精算確定時に `events.status → held`。確定取消時に `held → closed` |
+| 精算開始のみ | 実績には出さない（`collecting` は企画一覧側に残る） |
+| DB | migration `20250623000002_settlement_finalize_only_held.sql`（`20250623000001` は精算開始時 held 化・上書き済み） |
+| 実装 | `SettlementPageClient`（確定/取消時に status 更新）、`events-data.ts` |
+
+### 12.4 企画一覧カード（S04）
+
+| 項目 | 内容 |
+|---|---|
+| 一次会残数 | `getFirstPartRemaining()` — `sort_order` 最小パートの `capacity − joined` |
+| 表示 | 募集中のみ「残りN人」落款バッジ（`RarityBadge` と同型） |
+| 色 | 残り **3人以上**: 白枠・白文字 / **2人以下**: 朱枠・朱文字（`#E8694F`） |
+| 実装 | `EventCard.tsx`, `event-participation.ts` |
+
+### 12.5 企画詳細（S05）UI 強調
+
+| 項目 | 内容 |
+|---|---|
+| 募集中バッジ | タイトル直下に独立配置（緑太枠） |
+| 参加表明済み | 参加メンバー向け緑枠バナー（チェック・参加パート名） |
+| 参加パート | 参加中は緑枠＋「参加中」バッジ。「取り消す」は緑枠 outline |
+| 会費見込み | 真鍮枠カード＋明朝大文字金額（参加メンバー・非企画者） |
+| 参加者 | 「企画者」「立替者」真鍮チップ（`settlements.finalized_by` 参照） |
+| 実装 | `EventDetailClient.tsx`, `events-data.ts`（`finalizer_id`） |
+
+### 12.6 参加表明・取消ロジック（修正）
+
+| 項目 | 変更前 | 変更後 |
+|---|---|---|
+| 定員到達 | 全パート満員で `events.status → closed`（自動） | **廃止**。パート単位で「満員」表示のみ |
+| 本人取消 | 定員到達後は `closed` になり取消不可だった | **募集中（`open`）なら取消可**（企画者本人も可） |
+| 締切後 | — | 幹事の「締切にする」で `closed`。本人取消不可・企画者のみ外せる |
+| 実装 | `EventDetailClient`（`maybeCloseEvent` 削除）、`canCancelPart()` |
+
+### 12.7 テスト
+
+| 種別 | 内容 |
+|---|---|
+| E2E | `events.spec.ts` — 定員到達後も「募集中」維持・「取り消す」表示を確認 |
+| E2E | `auth.spec.ts` — ログイン後ホーム見出し「ホーム」 |

@@ -46,6 +46,6 @@ test.describe("me", () => {
 
     await page.goto("/settings");
     await expect(page).toHaveURL("/me");
-    await expect(page.getByText("コミュニティ設定")).not.toBeVisible();
+    await expect(page.getByRole("link", { name: "設定" })).not.toBeVisible();
   });
 });

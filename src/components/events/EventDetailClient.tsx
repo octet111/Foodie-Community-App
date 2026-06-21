@@ -6,7 +6,6 @@ import type { AppProfile } from "@/lib/app-data";
 import type { CommentRow, EventDetail } from "@/lib/events-data";
 import { formatHeldAt } from "@/lib/event-dates";
 import {
-  allPartsFull,
   canCancelPart,
   canJoinPart,
   isPartFull,
@@ -47,50 +46,6 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
     router.refresh();
   }
 
-  async function maybeCloseEvent(supabase: ReturnType<typeof createClient>) {
-    const { data: freshParts } = await supabase
-      .from("event_parts")
-      .select("id, capacity, participations(id, status)")
-      .eq("event_id", event.id);
-
-    if (!freshParts) return;
-
-    const stats = freshParts.map((p) => ({
-      ...p,
-      joinedCount: (p.participations ?? []).filter(
-        (x: { status: string }) => x.status === "joined",
-      ).length,
-    }));
-
-    setParts((prev) =>
-      prev.map((p) => {
-        const fresh = stats.find((s) => s.id === p.id);
-        return fresh
-          ? { ...p, joinedCount: fresh.joinedCount }
-          : p;
-      }),
-    );
-
-    if (
-      allPartsFull(
-        stats.map((s) => ({
-          id: s.id,
-          name: "",
-          capacity: s.capacity,
-          fee_estimate: 0,
-          sort_order: 0,
-          joinedCount: s.joinedCount,
-        })),
-      )
-    ) {
-      await supabase
-        .from("events")
-        .update({ status: "closed" })
-        .eq("id", event.id);
-      setStatus("closed");
-    }
-  }
-
   async function handleJoin(partId: string) {
     setError(null);
     setBusy(partId);
@@ -127,7 +82,6 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
       );
     }
 
-    await maybeCloseEvent(supabase);
     setBusy(null);
     refreshFromServer();
   }
@@ -214,9 +168,14 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
       .from("events")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", event.id);
-    router.push("/");
+    router.push("/events");
     router.refresh();
   }
+
+  const joinedPartNames = parts
+    .filter((p) => myJoinedPartIds.has(p.id))
+    .map((p) => p.name)
+    .join("・");
 
   return (
     <div className="flex flex-col gap-3">
@@ -228,7 +187,10 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
           </h1>
           <RarityBadge rarity={event.shop.rarity} />
         </div>
-        <p className="text-sm text-txt-muted">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={status} />
+        </div>
+        <p className="text-sm text-txt-2">
           {formatHeldAt(event.held_at)}
           {event.location ? `〜・${event.location}` : ""}
           {"（"}
@@ -237,15 +199,36 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
           </Link>
           {" ↗）"}
           <br />
-          企画：{event.organizerNickname}{" "}
-          <StatusBadge status={status} />
+          <span className="text-txt-muted">企画：{event.organizerNickname}</span>
         </p>
         {event.description && (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-txt-2">
+          <p className="whitespace-pre-wrap border-t border-line/80 pt-3 text-sm leading-relaxed text-txt-2">
             {event.description}
           </p>
         )}
       </Card>
+
+      {joinedAny && !isOrganizer && (
+        <Card className="border-2 border-green/45 bg-green/10">
+          <div className="flex items-start gap-2.5">
+            <span
+              className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-green bg-green/20 text-xs font-bold text-green"
+              aria-hidden
+            >
+              ✓
+            </span>
+            <div>
+              <p className="text-sm font-bold text-green">参加表明済み</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-txt-2">
+                {joinedPartNames}に参加
+                {status === "open"
+                  ? "・締切前まで変更できます"
+                  : "・締切済みです"}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {(isOrganizer || isAdmin || joinedAny) && (
         <Link href={`/events/${event.id}/settlement`}>
@@ -276,38 +259,52 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
       )}
 
       <SectionTitle>参加パート</SectionTitle>
-      {joinedAny && !isOrganizer && (
-        <p className="text-sm text-txt-2">
-          会費見込み：¥{feeEstimate.toLocaleString()}
-        </p>
-      )}
 
       <div className="flex flex-col gap-2">
         {parts.map((part) => {
           const userJoined = myJoinedPartIds.has(part.id);
           const full = isPartFull(part);
           const showJoin = canJoinPart(status, part, userJoined);
-          const showCancel = canCancelPart(status, userJoined, isOrganizer);
+          const showCancel = canCancelPart(status, userJoined);
 
           return (
             <Card
               key={part.id}
-              className="flex items-center justify-between gap-2 py-2"
+              className={`flex items-center justify-between gap-3 py-3 ${
+                userJoined
+                  ? "border-2 border-green/55 bg-green/[0.1]"
+                  : full && status === "open"
+                    ? "border border-line opacity-75"
+                    : ""
+              }`}
             >
-              <div>
-                <p className="text-sm font-bold text-txt">{part.name}</p>
-                <p className="text-xs text-txt-muted">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p
+                    className={`text-sm font-bold ${userJoined ? "text-heading" : "text-txt"}`}
+                  >
+                    {part.name}
+                  </p>
+                  {userJoined && (
+                    <span className="inline-flex rounded-md border-2 border-green/50 bg-green/20 px-2 py-0.5 text-[10px] font-bold tracking-wide text-green">
+                      参加中
+                    </span>
+                  )}
+                </div>
+                <p
+                  className={`mt-0.5 text-xs ${userJoined ? "text-txt-2" : "text-txt-muted"}`}
+                >
                   ¥{part.fee_estimate.toLocaleString()}・{part.joinedCount}/
                   {part.capacity}名
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                {full && status === "open" && (
+              <div className="flex shrink-0 items-center gap-2">
+                {full && status === "open" && !userJoined && (
                   <StatusBadge status="closed" />
                 )}
                 {showJoin && (
                   <Button
-                    className="text-[10px]"
+                    className="min-w-[4.5rem] px-3 py-2 text-[11px]"
                     disabled={busy === part.id}
                     onClick={() => handleJoin(part.id)}
                   >
@@ -315,16 +312,16 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
                   </Button>
                 )}
                 {userJoined && !showCancel && (
-                  <span className="text-xs text-green">参加済</span>
+                  <span className="text-xs font-bold text-green">参加済</span>
                 )}
                 {showCancel && (
                   <Button
                     variant="outline"
-                    className="text-[10px]"
+                    className="min-w-[4.5rem] border-green/45 px-3 py-2 text-[11px] text-green hover:border-green/70"
                     disabled={busy === part.id}
                     onClick={() => handleCancel(part.id)}
                   >
-                    取消
+                    取り消す
                   </Button>
                 )}
                 {full && !userJoined && status === "open" && (
@@ -337,6 +334,18 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
           );
         })}
       </div>
+
+      {joinedAny && !isOrganizer && (
+        <Card className="border-2 border-brass/35 bg-card-2">
+          <SectionTitle>あなたの会費（見込み）</SectionTitle>
+          <p className="mt-2 font-display text-3xl font-semibold tracking-wide text-heading">
+            ¥{feeEstimate.toLocaleString()}
+          </p>
+          <p className="mt-2 text-[11px] leading-relaxed text-txt-muted">
+            開催後に企画者が精算し、最終金額が確定します。
+          </p>
+        </Card>
+      )}
 
       {parts.map((part) => {
         const partPeople = participations.filter(
@@ -358,9 +367,10 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
                     </span>
                     <span className="text-sm text-txt">{p.nickname}</span>
                     {p.user_id === event.organizer_id && (
-                      <span className="rounded bg-line px-1.5 py-0.5 text-[10px] text-txt-muted">
-                        企画者
-                      </span>
+                      <RoleChip label="企画者" />
+                    )}
+                    {event.finalizer_id && p.user_id === event.finalizer_id && (
+                      <RoleChip label="立替者" />
                     )}
                   </div>
                   {(isOrganizer || isAdmin) &&
@@ -391,6 +401,14 @@ export function EventDetailClient({ event, profile }: EventDetailClientProps) {
 
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
+  );
+}
+
+function RoleChip({ label }: { label: string }) {
+  return (
+    <span className="inline-flex rounded-lg border border-brass/40 bg-brass/15 px-1.5 py-0.5 text-[9px] font-bold text-brass">
+      {label}
+    </span>
   );
 }
 

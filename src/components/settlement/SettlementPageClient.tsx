@@ -620,6 +620,14 @@ export function SettlementPageClient({
 
       if (updateError) throw updateError;
 
+      const { error: eventError } = await supabase
+        .from("events")
+        .update({ status: "held" })
+        .eq("id", eventId)
+        .in("status", ["open", "closed"]);
+
+      if (eventError) throw eventError;
+
       setSettlement((s) => ({ ...s, status: "finalized" }));
       refresh();
     } catch (err) {
@@ -646,6 +654,12 @@ export function SettlementPageClient({
       setBusy(false);
       return;
     }
+
+    await supabase
+      .from("events")
+      .update({ status: "closed" })
+      .eq("id", eventId)
+      .eq("status", "held");
 
     setSettlement((s) => ({ ...s, status: "collecting" }));
     setBusy(false);

@@ -25,7 +25,7 @@ export default async function EventNewPage({ searchParams }: EventNewPageProps) 
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-3">
-      <Link href="/" className="text-xs text-txt-muted hover:text-brass">
+      <Link href="/events" className="text-xs text-txt-muted hover:text-brass">
         ‹ 企画一覧へ
       </Link>
       <EventCreateForm

@@ -1,18 +1,15 @@
 import { SectionTitle } from "@/components/ui/SectionTitle";
-import { EventsPageClient } from "@/components/events/EventsPageClient";
-import { getEventsList } from "@/lib/events-data";
+import { HomePageClient } from "@/components/home/HomePageClient";
 
 export const metadata = {
-  title: "企画一覧",
+  title: "ホーム",
 };
 
-export default async function HomePage() {
-  const events = await getEventsList();
-
+export default function HomePage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-3">
-      <SectionTitle>企画一覧</SectionTitle>
-      <EventsPageClient events={events} />
+      <SectionTitle>ホーム</SectionTitle>
+      <HomePageClient />
     </div>
   );
 }

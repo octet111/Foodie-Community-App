@@ -28,9 +28,8 @@ export function canJoinPart(
 export function canCancelPart(
   eventStatus: EventStatus,
   userJoined: boolean,
-  isOrganizer: boolean,
 ): boolean {
-  return userJoined && eventStatus === "open" && !isOrganizer;
+  return userJoined && eventStatus === "open";
 }
 
 export function sumFeeEstimate(
@@ -46,4 +45,15 @@ export function formatParticipationSummary(parts: PartStats[]): string {
   return parts
     .map((p) => `${p.name} ${p.joinedCount}/${p.capacity}`)
     .join("・");
+}
+
+export function getFirstPart(parts: PartStats[]): PartStats | null {
+  if (parts.length === 0) return null;
+  return [...parts].sort((a, b) => a.sort_order - b.sort_order)[0];
+}
+
+export function getFirstPartRemaining(parts: PartStats[]): number | null {
+  const first = getFirstPart(parts);
+  if (!first) return null;
+  return Math.max(0, first.capacity - first.joinedCount);
 }

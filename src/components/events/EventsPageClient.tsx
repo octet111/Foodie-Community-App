@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { EventListItem } from "@/lib/events-data";
 import { dateKeyInJst, getCalendarCells } from "@/lib/event-dates";
 import { EventCard } from "@/components/events/EventCard";
+import { Button } from "@/components/ui/Button";
 
 type ViewMode = "list" | "calendar";
 
@@ -63,6 +64,10 @@ export function EventsPageClient({ events }: EventsPageClientProps) {
 
   return (
     <div className="flex flex-col gap-3">
+      <Link href="/events/new">
+        <Button className="w-full">＋ 企画を作成</Button>
+      </Link>
+
       <div className="flex rounded-[var(--radius-btn)] border border-line bg-card p-0.5">
         <button
           type="button"
@@ -156,14 +161,6 @@ export function EventsPageClient({ events }: EventsPageClientProps) {
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-txt-muted">
           {openOnly ? "募集中の企画はありません" : "企画がまだありません"}
-          {!openOnly && (
-            <>
-              {" "}
-              <Link href="/events/new" className="text-brass underline-offset-2 hover:underline">
-                企画を立てる
-              </Link>
-            </>
-          )}
         </p>
       ) : (
         filtered.map((event) => <EventCard key={event.id} event={event} />)

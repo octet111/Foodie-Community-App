@@ -9,9 +9,10 @@
 | 0–5 | 基盤・認証・店・企画 | ✅ |
 | 6 | 精算（S09） | ✅ 2026-06-16 |
 | 7 | リマインド・運用 | ✅ 2026-06-20 |
-| 8 | マイページ・設定・仕上げ | 未着手 |
+| 8 | マイページ・設定・仕上げ | ✅ 部分 2026-06-21 |
+| 9 | UIブラッシュアップ（ナビ・設定拡張・リマインド4日前・開催日時） | ✅ 2026-06-21 |
 
-詳細は `Requirements-docs_and_Design/implementation_spec.md` §8（フェーズ6）・§9（フェーズ7）を参照。
+詳細は `Requirements-docs_and_Design/cursor_implementation_plan_v1.0.md` を参照。`implementation_spec.md` §8–§11（フェーズ6–9）。
 
 ## ディレクトリ構成
 
@@ -93,9 +94,11 @@ npx supabase functions serve ogp-fetch
 
 ### Edge Function: send-reminders（フェーズ7・完成）
 
-企画リマインドを送信するバッチ関数。`remind_at <= now()` かつ `sent_at is null` の
-リマインドに対し、参加者へ **アプリ内通知 + Resend メール** を送り `sent_at` を更新する。
-二重実行時は `sent_at` の楽観ロックで再送を防ぐ（冪等）。
+企画リマインドを送信するバッチ関数。**開催4日前 + 当日**の2回（時刻は `community_settings` 参照）。
+`remind_at <= now()` かつ `sent_at is null` のリマインドに対し、参加者へ **アプリ内通知 + Resend メール** を送り `sent_at` を更新する。
+二重実行時は `sent_at` の楽観ロックで再送を防ぐ（冪等）。メール件名/本文は DB テンプレートまたはデフォルト HTML を使用。
+
+**テスト送信**: POST body `{ "test_email": "your@email.com" }`（任意 `event_id`）
 
 **実装ファイル**: `supabase/functions/send-reminders/`、`supabase/migrations/20250616000009_notifications.sql`
 
@@ -190,3 +193,49 @@ WHERE id = (
 ```
 
 3. 再ログイン後、管理者権限が反映される
+
+## フェーズ8–9: マイページ・設定・UIブラッシュアップ（2026-06-21）
+
+### マイページ `/me`
+
+- ニックネーム編集、企画中（精算へ）、参加予定、未払い、ストック・確保宣言、ログアウト
+
+### ナビ
+
+- 企画 / 店 / マイページ / **設定**（admin のみ）。アイコン付き
+- 企画作成は企画一覧 `/` 内「＋ 企画を作成」ボタン
+
+### 設定 `/settings`（admin のみ）
+
+| パス | 内容 |
+|---|---|
+| `/settings` | コミュニティ名・ロゴ・振込先、メンバー一覧（UUID 表示）+ admin 付与/剥奪 |
+| `/settings/reminders` | 4日前・当日リマインドのデフォルト送信時刻 |
+| `/settings/email-template` | リマインドメール件名/本文テンプレ |
+
+非 admin は `proxy.ts` で `/me` へリダイレクト
+
+### 企画作成の開催日時
+
+- 開催日（date）+ 開催時刻（select、10分刻み 00:00〜23:50）
+
+### マイグレーション（未適用の場合）
+
+```bash
+npx supabase db push
+```
+
+追加 migration: `20250622000001_community_reminder_email_settings.sql`, `20250622000002_reminder_advance_four_days.sql`
+
+### E2E
+
+```bash
+npx playwright test          # auth / shops / events / settlement / me
+npx playwright test me auth  # フェーズ8 重点
+```
+
+### 本番前の残タスク
+
+- **P8-6**: Vercel デプロイ（環境変数 + Auth Redirect URLs）
+- **P8-7**: 要件定義 §4.1 全 AC の Playwright 網羅
+- Resend 独自ドメイン認証、`APP_URL` 本番化

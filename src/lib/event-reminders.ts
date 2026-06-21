@@ -1,6 +1,6 @@
 const JST = "Asia/Tokyo";
 
-/** 企画公開時に生成するリマインド時刻（前日18:00・当日9:00 JST） */
+/** 企画公開時に生成するリマインド時刻（4日前18:00・当日9:00 JST） */
 export function buildReminderTimes(heldAtIso: string): {
   dayBefore18: string;
   dayOf9: string;

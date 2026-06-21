@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { EventListItem } from "@/lib/events-data";
 import { formatHeldAt } from "@/lib/event-dates";
-import { formatParticipationSummary } from "@/lib/event-participation";
+import {
+  formatParticipationSummary,
+  getFirstPartRemaining,
+} from "@/lib/event-participation";
 import { Card } from "@/components/ui/Card";
 import { RarityBadge } from "@/components/ui/RarityBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -13,6 +16,8 @@ type EventCardProps = {
 
 export function EventCard({ event }: EventCardProps) {
   const dimmed = event.status !== "open";
+  const firstPartRemaining =
+    event.status === "open" ? getFirstPartRemaining(event.parts) : null;
 
   return (
     <Link href={`/events/${event.id}`} className="block">
@@ -33,7 +38,20 @@ export function EventCard({ event }: EventCardProps) {
           {event.organizerNickname}
         </p>
         <div className="flex items-center justify-between gap-2">
-          <StatusBadge status={event.status} />
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={event.status} />
+            {firstPartRemaining !== null && (
+              <span
+                className={`inline-flex items-center justify-center rounded-[var(--radius-seal)] border-[1.5px] px-1.5 py-0.5 font-display text-[10px] font-bold tracking-[0.14em] ${
+                  firstPartRemaining <= 2
+                    ? "border-shu bg-shu/10 text-[#E8694F]"
+                    : "border-heading text-heading"
+                }`}
+              >
+                残り{firstPartRemaining}人
+              </span>
+            )}
+          </div>
           <span className="text-[10px] text-txt-muted">
             {formatParticipationSummary(event.parts)}
           </span>

@@ -41,7 +41,8 @@ test.describe("events", () => {
     await organizerPage.getByRole("button", { name: "ストックから選ぶ" }).click();
     await organizerPage.getByRole("button", { name: shopName }).click();
     await organizerPage.getByPlaceholder("鮨かね田を貸切る会").fill(eventTitle);
-    await organizerPage.getByLabel("開催日時").fill("2030-12-31T18:00");
+    await organizerPage.getByLabel("開催日").fill("2030-12-31");
+    await organizerPage.getByLabel(/開催時刻/).selectOption("18:00");
     await organizerPage.getByLabel("場所").fill("テストエリア");
     await organizerPage.getByLabel("一次会の定員").fill("1");
     await organizerPage.getByRole("button", { name: "この内容で公開する" }).click();
@@ -60,12 +61,12 @@ test.describe("events", () => {
     await memberPage.getByRole("button", { name: "登録する" }).click();
     await expect(memberPage).toHaveURL("/");
 
-    await memberPage.goto("/");
+    await memberPage.goto("/events");
     await memberPage.getByText(eventTitle).click();
     await expect(memberPage.getByRole("button", { name: "参加する" })).toBeVisible();
     await memberPage.getByRole("button", { name: "参加する" }).click();
-    await expect(memberPage.getByText("参加済")).toBeVisible();
-    await expect(memberPage.getByText("締切")).toBeVisible();
+    await expect(memberPage.getByText("参加中")).toBeVisible();
+    await expect(memberPage.getByRole("button", { name: "取り消す" })).toBeVisible();
 
     await organizerPage.goto(memberPage.url());
     await expect(organizerPage.getByRole("button", { name: "満員" })).toBeVisible();

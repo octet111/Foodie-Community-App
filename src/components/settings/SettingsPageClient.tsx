@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { SettingsSubNav } from "@/components/settings/SettingsSubNav";
 
 type SettingsPageClientProps = {
   profile: AppProfile;
@@ -150,6 +151,7 @@ export function SettingsPageClient({
 
   return (
     <div className="flex flex-col gap-3">
+      <SettingsSubNav />
       <SectionTitle>コミュニティ設定</SectionTitle>
 
       {error && (
@@ -249,6 +251,12 @@ export function SettingsPageClient({
               </p>
               <p className="text-[10px] text-txt-muted">
                 {member.role === "admin" ? "管理者" : "メンバー"}
+              </p>
+              <p
+                className="mt-0.5 truncate font-mono text-[10px] text-txt-muted/80"
+                title={member.id}
+              >
+                ID: {member.id}
               </p>
             </div>
             {member.id !== profile.id && (

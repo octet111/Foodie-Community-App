@@ -19,9 +19,11 @@ export function AppShell({
   headerTitle,
   children,
 }: AppShellProps) {
+  const isAdmin = profile?.role === "admin";
+
   return (
     <div className="flex min-h-full flex-1">
-      <SideNav />
+      <SideNav isAdmin={isAdmin} />
       <div className="flex min-h-full min-w-0 flex-1 flex-col">
         <AppHeader
           community={community}
@@ -32,7 +34,7 @@ export function AppShell({
         <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-[var(--space-body-pad)]">
           {children}
         </main>
-        <BottomNav />
+        <BottomNav isAdmin={isAdmin} />
       </div>
     </div>
   );

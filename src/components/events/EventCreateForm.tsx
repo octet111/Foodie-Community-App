@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AppProfile } from "@/lib/app-data";
-import { localDatetimeToIso } from "@/lib/event-dates";
+import {
+  combineLocalDatetime,
+  isoToHeldAtFields,
+  localDatetimeToIso,
+} from "@/lib/event-dates";
+import { EventHeldAtFields } from "@/components/events/EventHeldAtFields";
 import { fetchOgp } from "@/lib/ogp";
 import type { Shop, ShopClaimGroup, StockItem } from "@/lib/shops-data";
 import { createClient } from "@/lib/supabase/client";
@@ -45,7 +50,10 @@ export function EventCreateForm({
   const [fetchingShop, setFetchingShop] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [heldAt, setHeldAt] = useState("");
+  const [heldDate, setHeldDate] = useState("");
+  const [heldTime, setHeldTime] = useState(
+    () => isoToHeldAtFields(new Date().toISOString()).time,
+  );
   const [location, setLocation] = useState("");
   const [parts, setParts] = useState<PartDraft[]>([createDefaultPart()]);
   const [saving, setSaving] = useState(false);
@@ -97,10 +105,11 @@ export function EventCreateForm({
       setError("タイトルを入力してください");
       return;
     }
-    if (!heldAt) {
+    if (!heldDate || !heldTime) {
       setError("開催日時を入力してください");
       return;
     }
+    const heldAt = combineLocalDatetime(heldDate, heldTime);
     const partError = validateParts(parts);
     if (partError) {
       setError(partError);
@@ -240,31 +249,24 @@ export function EventCreateForm({
         />
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <label htmlFor="event-held-at" className="mb-1 block text-xs text-txt-muted">
-            開催日時
-          </label>
-          <input
-            id="event-held-at"
-            type="datetime-local"
-            className={inputClass}
-            value={heldAt}
-            onChange={(e) => setHeldAt(e.target.value)}
-          />
-        </div>
-        <div className="flex-1">
-          <label htmlFor="event-location" className="mb-1 block text-xs text-txt-muted">
-            場所
-          </label>
-          <input
-            id="event-location"
-            className={inputClass}
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="銀座"
-          />
-        </div>
+      <EventHeldAtFields
+        date={heldDate}
+        time={heldTime}
+        onDateChange={setHeldDate}
+        onTimeChange={setHeldTime}
+      />
+
+      <div>
+        <label htmlFor="event-location" className="mb-1 block text-xs text-txt-muted">
+          場所
+        </label>
+        <input
+          id="event-location"
+          className={inputClass}
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="銀座"
+        />
       </div>
 
       <SectionTitle>参加パート</SectionTitle>

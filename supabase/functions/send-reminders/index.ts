@@ -4,6 +4,7 @@ import {
   buildAdminFailureHtml,
   buildReminderHtml,
   buildReminderSubject,
+  ADVANCE_REMINDER_DAYS,
   type ReminderEmailProps,
 } from "./email-template.ts";
 
@@ -59,7 +60,7 @@ function formatHeldAtJst(heldAt: string): string {
 function reminderKind(
   remindAt: string,
   heldAt: string,
-): "day_before" | "day_of" {
+): "advance" | "day_of" {
   const heldKey = new Intl.DateTimeFormat("en-CA", {
     timeZone: JST,
     year: "numeric",
@@ -74,20 +75,46 @@ function reminderKind(
     day: "2-digit",
   }).format(new Date(remindAt));
 
-  return remindKey < heldKey ? "day_before" : "day_of";
+  return remindKey < heldKey ? "advance" : "day_of";
 }
 
 function notificationCopy(
-  kind: "day_before" | "day_of",
+  kind: "advance" | "day_of",
   eventTitle: string,
   shopName: string,
   heldAtLabel: string,
 ): { title: string; body: string } {
-  const prefix = kind === "day_before" ? "明日の企画リマインド" : "本日の企画リマインド";
+  const prefix =
+    kind === "advance"
+      ? `${ADVANCE_REMINDER_DAYS}日前の企画リマインド`
+      : "本日の企画リマインド";
   return {
     title: prefix,
     body: `${eventTitle} — ${shopName} / ${heldAtLabel}`,
   };
+}
+
+const RESEND_SANDBOX_FROM = "onboarding@resend.dev";
+
+function isResendSandboxFrom(from: string): boolean {
+  return from.includes(RESEND_SANDBOX_FROM);
+}
+
+function resolveResendTestRecipient(
+  resendFrom: string,
+  adminEmails: string[],
+): string | null {
+  const configured = Deno.env.get("RESEND_TEST_RECIPIENT")?.trim();
+  if (configured) return configured;
+  if (isResendSandboxFrom(resendFrom)) {
+    return adminEmails[0] ?? null;
+  }
+  return null;
+}
+
+function isResendSandboxRecipientError(message: string): boolean {
+  return message.includes("403") &&
+    message.includes("testing emails to your own email address");
 }
 
 async function sendResendEmail(params: {
@@ -176,6 +203,8 @@ async function processReminder(
   reminder: ReminderRow,
   options: {
     communityName: string;
+    emailSubjectTemplate: string | null;
+    emailBodyTemplate: string | null;
     appUrl: string;
     resendApiKey: string;
     resendFrom: string;
@@ -268,10 +297,22 @@ async function processReminder(
     return { sent: true, errors };
   }
 
+  const resendTestRecipient = resolveResendTestRecipient(
+    options.resendFrom,
+    options.adminEmails,
+  );
+
   for (const [userId, nickname] of participantMap) {
     const email = emailsByUser.get(userId);
     if (!email) {
       errors.push(`no email for user ${userId} (${nickname})`);
+      continue;
+    }
+
+    if (
+      resendTestRecipient &&
+      email.toLowerCase() !== resendTestRecipient.toLowerCase()
+    ) {
       continue;
     }
 
@@ -291,13 +332,18 @@ async function processReminder(
         apiKey: options.resendApiKey,
         from: options.resendFrom,
         to: email,
-        subject: buildReminderSubject(emailProps),
-        html: buildReminderHtml(emailProps),
+        subject: buildReminderSubject(
+          emailProps,
+          options.emailSubjectTemplate,
+        ),
+        html: buildReminderHtml(emailProps, options.emailBodyTemplate),
       });
     } catch (e) {
-      errors.push(
-        `email to ${nickname}: ${e instanceof Error ? e.message : String(e)}`,
-      );
+      const message = e instanceof Error ? e.message : String(e);
+      if (isResendSandboxRecipientError(message)) {
+        continue;
+      }
+      errors.push(`email to ${nickname}: ${message}`);
     }
   }
 
@@ -365,12 +411,68 @@ Deno.serve(async (req) => {
 
     const { data: settings } = await supabase
       .from("community_settings")
-      .select("name")
+      .select(
+        "name, email_reminder_subject_template, email_reminder_body_template",
+      )
       .limit(1)
       .maybeSingle();
 
     const communityName = settings?.name ?? "フーディコミュニティ";
+    const emailSubjectTemplate =
+      settings?.email_reminder_subject_template ?? null;
+    const emailBodyTemplate = settings?.email_reminder_body_template ?? null;
     const adminEmails = await getAdminEmails(supabase);
+
+    let body: { test_email?: string; event_id?: string } = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+
+    if (body.test_email) {
+      const eventId = body.event_id ?? null;
+      let eventRow: EventRow | null = null;
+
+      if (eventId) {
+        const { data: event } = await supabase
+          .from("events")
+          .select("id, title, held_at, location, deleted_at, shop:shops(name)")
+          .eq("id", eventId)
+          .maybeSingle();
+        eventRow = event as EventRow | null;
+      }
+
+      const emailProps: ReminderEmailProps = {
+        communityName,
+        nickname: "テスト",
+        eventTitle: eventRow?.title ?? "リマインド送信テスト",
+        shopName: eventRow?.shop?.name ?? "テスト店舗",
+        heldAtLabel: eventRow
+          ? formatHeldAtJst(eventRow.held_at)
+          : formatHeldAtJst(new Date().toISOString()),
+        location: eventRow?.location ?? "テストエリア",
+        eventUrl: eventRow
+          ? `${appUrl.replace(/\/$/, "")}/events/${eventRow.id}`
+          : `${appUrl.replace(/\/$/, "")}/`,
+        kind: "advance",
+      };
+
+      await sendResendEmail({
+        apiKey: resendApiKey,
+        from: resendFrom,
+        to: body.test_email,
+        subject: buildReminderSubject(emailProps, emailSubjectTemplate),
+        html: buildReminderHtml(emailProps, emailBodyTemplate),
+      });
+
+      return jsonResponse({
+        ok: true,
+        mode: "test_email",
+        to: body.test_email,
+        event_id: eventId,
+      });
+    }
 
     const now = new Date().toISOString();
     const { data: dueReminders, error: fetchError } = await supabase
@@ -393,6 +495,8 @@ Deno.serve(async (req) => {
     for (const reminder of (dueReminders ?? []) as ReminderRow[]) {
       const result = await processReminder(supabase, reminder, {
         communityName,
+        emailSubjectTemplate,
+        emailBodyTemplate,
         appUrl,
         resendApiKey,
         resendFrom,

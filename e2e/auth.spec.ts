@@ -15,7 +15,7 @@ test.describe("auth", () => {
     await page.getByRole("button", { name: "登録する" }).click();
 
     await expect(page).toHaveURL("/");
-    await expect(page.getByRole("heading", { name: "企画一覧" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
 
     await page.goto("/me");
     await page.getByRole("button", { name: "ログアウト" }).click();
@@ -29,7 +29,7 @@ test.describe("auth", () => {
     await page.getByRole("button", { name: "ログイン" }).click();
 
     await expect(page).toHaveURL("/");
-    await expect(page.getByRole("heading", { name: "企画一覧" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
   });
 
   test("誤パスワードでエラー表示", async ({ page }) => {
