@@ -34,6 +34,7 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
   const [ogpImageUrl, setOgpImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [rarity, setRarity] = useState<ShopRarity>("reservable");
+  const [memo, setMemo] = useState("");
   const [manualMode, setManualMode] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -49,6 +50,7 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
     setOgpImageUrl("");
     setImageFile(null);
     setRarity("reservable");
+    setMemo("");
     setManualMode(false);
     setPreviewReady(false);
     setError(null);
@@ -130,6 +132,7 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
       const { error: stockError } = await supabase.from("stocks").insert({
         shop_id: shop.id,
         user_id: userId,
+        memo: memo.trim() || null,
       });
 
       if (stockError && stockError.code !== "23505") throw stockError;
@@ -267,6 +270,18 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label htmlFor="shop-memo" className="mb-1 block text-xs text-txt-2">
+                行きたい理由（任意）
+              </label>
+              <textarea
+                id="shop-memo"
+                className={`${inputClass} min-h-[72px] resize-y`}
+                placeholder="なぜ行きたいか、どんな時に行きたいか…"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+              />
             </div>
           </>
         )}

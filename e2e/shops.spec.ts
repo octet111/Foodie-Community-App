@@ -22,17 +22,22 @@ test.describe("shops", () => {
     await page.getByRole("button", { name: "＋ 店を追加（URL貼付）" }).click();
     await page.getByRole("button", { name: "URLなしで手動入力" }).click();
     await page.getByLabel("店名").fill(shopName);
+    await page.getByLabel("行きたい理由（任意）").fill("紹介制だけど一度行ってみたい");
     await page.getByLabel("予約難易度").selectOption("referral_only");
     await page.getByRole("button", { name: "保存" }).click();
 
     await expect(page.getByText(shopName)).toBeVisible();
     await expect(page.getByText("紹介制")).toBeVisible();
+    await expect(page.getByText("紹介制だけど一度行ってみたい")).toBeVisible();
 
     await page.getByRole("link", { name: shopName }).click();
     await expect(page).toHaveURL(/\/shops\/.+/);
     await expect(
       page.getByRole("heading", { name: shopName, level: 1 }),
     ).toBeVisible();
+    await expect(page.getByLabel("行きたい理由（任意）")).toHaveValue(
+      "紹介制だけど一度行ってみたい",
+    );
 
     await page.getByRole("button", { name: "確保宣言する" }).click();
     await page.getByLabel("コネ種別").selectOption("regular");

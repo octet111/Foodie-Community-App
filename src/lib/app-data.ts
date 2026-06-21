@@ -3,7 +3,7 @@ import {
   DEFAULT_COMMUNITY_NAME,
   DEFAULT_LOGO_CHAR,
 } from "@/lib/constants";
-import { getCommunityLogoUrl } from "@/lib/storage";
+import { getCommunityLogoUrl, getAvatarUrl } from "@/lib/storage";
 import type { NotificationItem } from "@/lib/notifications-data";
 
 export type CommunitySettings = {
@@ -17,6 +17,8 @@ export type AppProfile = {
   id: string;
   nickname: string;
   role: "member" | "admin";
+  avatarPath: string | null;
+  avatarUrl: string | null;
 };
 
 export async function getCommunitySettings(): Promise<CommunitySettings> {
@@ -51,7 +53,7 @@ export async function getCurrentProfile(): Promise<AppProfile | null> {
 
   const { data } = await supabase
     .from("profiles")
-    .select("id, nickname, role")
+    .select("id, nickname, role, avatar_path")
     .eq("id", user.id)
     .single();
 
@@ -61,6 +63,8 @@ export async function getCurrentProfile(): Promise<AppProfile | null> {
     id: data.id,
     nickname: data.nickname,
     role: data.role,
+    avatarPath: data.avatar_path,
+    avatarUrl: getAvatarUrl(supabase, data.avatar_path),
   };
 }
 

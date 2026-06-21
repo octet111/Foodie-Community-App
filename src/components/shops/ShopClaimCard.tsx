@@ -3,6 +3,7 @@ import type { ShopClaimGroup } from "@/lib/shops-data";
 import { RarityBadge } from "@/components/ui/RarityBadge";
 import { ConnChip } from "@/components/ui/ConnChip";
 import { Card } from "@/components/ui/Card";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type ShopClaimCardProps = {
   group: ShopClaimGroup;
@@ -26,9 +27,11 @@ export function ShopClaimCard({ group }: ShopClaimCardProps) {
         <ul className="mt-2 flex flex-col gap-1.5">
           {claims.map((claim) => (
             <li key={claim.id} className="flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-card-2 text-[9px] font-bold text-txt-2">
-                {claim.nickname.charAt(0)}
-              </span>
+              <UserAvatar
+                nickname={claim.nickname}
+                avatarUrl={claim.avatarUrl}
+                className="h-[18px] w-[18px] bg-card-2 text-[9px] font-bold text-txt-2"
+              />
               <span className="text-xs text-txt">{claim.nickname}</span>
               <ConnChip type={claim.claim_type} />
               {claim.note && (

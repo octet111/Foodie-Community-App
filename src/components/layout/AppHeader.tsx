@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { AppProfile, CommunitySettings } from "@/lib/app-data";
 import type { NotificationItem } from "@/lib/notifications-data";
 import { NotificationBell } from "@/components/layout/NotificationBell";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type AppHeaderProps = {
   community: CommunitySettings;
@@ -42,10 +43,14 @@ export function AppHeader({
       <Link
         href="/me"
         aria-label={profile?.nickname ?? "マイページ"}
-        className="ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-line text-[10px] font-bold text-txt-2"
+        className="ml-1 shrink-0"
         title={profile?.nickname}
       >
-        {profile?.nickname?.charAt(0) ?? "?"}
+        <UserAvatar
+          nickname={profile?.nickname ?? "?"}
+          avatarUrl={profile?.avatarUrl}
+          className="h-6 w-6 text-[10px] font-bold"
+        />
       </Link>
     </header>
   );

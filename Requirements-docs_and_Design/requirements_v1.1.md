@@ -221,6 +221,7 @@
 |---|---|---|
 | id | メンバーID | uuid・主キー |
 | nickname | ニックネーム | 公開表示名 |
+| avatar_path | プロフィールアイコン | Supabase Storage `avatars` バケット内パス（任意）。未設定時は頭文字表示 |
 | email | メールアドレス | 認証用・非公開 |
 | role | ロール | member / admin |
 | created_at | 登録日時 | timestamp |
@@ -421,7 +422,7 @@ MVP〜フェーズ2の要件に必要な論点はすべて決定済み。
 
 用語統一: 本書では「企画者（幹事）」に表記を統一する（同一概念）。
 
-残課題: **MVP 実装はフェーズ11 機能ブラッシュアップ #3 まで反映済み**（2026-06-21）。本番前: P8-6 Vercel デプロイ、P8-7 全 AC E2E 網羅、Resend ドメイン認証、`APP_URL` 本番化。未適用 migration があれば `npx supabase db push`（**`20250624000001`** 含む）。
+残課題: **MVP 実装はフェーズ12 機能ブラッシュアップ #4 まで反映済み**（2026-06-21）。本番前: P8-6 Vercel デプロイ、P8-7 全 AC E2E 網羅、Resend ドメイン認証、`APP_URL` 本番化。未適用 migration があれば `npx supabase db push`（**`20250625000001`** 含む）。
 
 ---
 
@@ -520,8 +521,16 @@ MVP〜フェーズ2の要件に必要な論点はすべて決定済み。
 | DB | `20250624000001_set_event_finalizer.sql` |
 | 実装詳細 | `implementation_spec.md` §13、`cursor_implementation_plan_v1.0.md` フェーズ11 |
 
-### 未着手（検討中）
+---
+
+## 16. フェーズ12 機能ブラッシュアップ #4（2026-06-21）
 
 | 区分 | 内容 |
 |---|---|
-| プロフィールアイコン | `profiles.avatar_path` + Storage バケットは未実装。現状はニックネーム頭文字 |
+| 店リスト S07 UI | 「＋ 店を追加」を企画一覧と同様 **上部 primary 全幅**に統一 |
+| 行きたいメモ | `stocks.memo` — 店追加モーダル・S08 で入力/編集。S07・マイページは表示のみ |
+| プロフィールアイコン | `profiles.avatar_path` + Storage `avatars`。S10 で変更・削除。`UserAvatar` で全画面表示 |
+| マイページ UI | grid レイアウトでアイコンとニックネームの重なり防止。編集時は入力欄を全幅配置 |
+| DB | `20250625000001_profile_avatars.sql` |
+| E2E | `shops.spec.ts` — 行きたいメモの追加・詳細表示 |
+| 実装詳細 | `implementation_spec.md` §14、`cursor_implementation_plan_v1.0.md` フェーズ12 |

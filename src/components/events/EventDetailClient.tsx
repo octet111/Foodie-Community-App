@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { AppProfile } from "@/lib/app-data";
-import type { CommentRow, EventDetail } from "@/lib/events-data";
+import type { CommentRow, EventDetail, MemberProfile } from "@/lib/events-data";
 import { formatHeldAt } from "@/lib/event-dates";
 import {
   canCancelPart,
@@ -21,12 +21,13 @@ import { RarityBadge } from "@/components/ui/RarityBadge";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ShopThumb } from "@/components/shops/ShopThumb";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
 
 type EventDetailClientProps = {
   event: EventDetail;
   profile: AppProfile;
-  memberProfiles: { id: string; nickname: string }[];
+  memberProfiles: MemberProfile[];
 };
 
 export function EventDetailClient({
@@ -118,6 +119,7 @@ export function EventDetailClient({
         id: crypto.randomUUID(),
         user_id: profile.id,
         nickname: profile.nickname,
+        avatarUrl: profile.avatarUrl,
         event_part_id: partId,
       },
     ]);
@@ -231,14 +233,15 @@ export function EventDetailClient({
       return;
     }
 
-    const nickname =
-      memberProfiles.find((p) => p.id === userId)?.nickname ?? "不明";
+    const member = memberProfiles.find((p) => p.id === userId);
+    const nickname = member?.nickname ?? "不明";
     setParticipations((prev) => [
       ...prev,
       {
         id: data.id,
         user_id: data.user_id,
         nickname,
+        avatarUrl: member?.avatarUrl ?? null,
         event_part_id: partId,
       },
     ]);
@@ -628,9 +631,11 @@ export function EventDetailClient({
                     partPeople.map((p) => (
                       <ParticipantRow key={p.id}>
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[#5D6B89] text-[10px] font-bold text-txt">
-                            {p.nickname.charAt(0)}
-                          </span>
+                          <UserAvatar
+                            nickname={p.nickname}
+                            avatarUrl={p.avatarUrl}
+                            className="h-[22px] w-[22px] bg-[#5D6B89] text-[10px] font-bold text-txt"
+                          />
                           <span className="text-xs text-txt">{p.nickname}</span>
                           {p.user_id === event.organizer_id && (
                             <RoleChip label="企画者" />
@@ -858,6 +863,7 @@ function CommentSection({
       {
         ...data,
         nickname: profile.nickname,
+        avatarUrl: profile.avatarUrl,
       },
     ]);
     setBody("");
@@ -910,9 +916,11 @@ function CommentSection({
         ) : (
           comments.map((c) => (
             <div key={c.id} className="flex items-start gap-2">
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-card-2 text-[10px] font-bold">
-                {c.nickname.charAt(0)}
-              </span>
+              <UserAvatar
+                nickname={c.nickname}
+                avatarUrl={c.avatarUrl}
+                className="h-6 w-6 bg-card-2 text-[10px] font-bold"
+              />
               <div className="min-w-0 flex-1">
                 {editingId === c.id ? (
                   <div className="flex gap-2">

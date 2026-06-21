@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { AppProfile } from "@/lib/app-data";
-import type { ClaimItem, Shop, ShopEvent } from "@/lib/shops-data";
+import type { ClaimItem, Shop, ShopEvent, UserStock } from "@/lib/shops-data";
 import { EVENT_STATUS_LABELS } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConnChip } from "@/components/ui/ConnChip";
@@ -12,6 +14,7 @@ import { RarityBadge } from "@/components/ui/RarityBadge";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { SecureClaimModal } from "@/components/shops/SecureClaimModal";
 import { ShopThumb } from "@/components/shops/ShopThumb";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type ShopDetailClientProps = {
   shop: Shop;
@@ -19,7 +22,11 @@ type ShopDetailClientProps = {
   events: ShopEvent[];
   profile: AppProfile;
   userClaim: ClaimItem | null;
+  userStock: UserStock | null;
 };
+
+const inputClass =
+  "w-full rounded-[var(--radius-input)] border border-line bg-card-2 px-3 py-2 text-sm text-txt outline-none focus:border-brass/50";
 
 export function ShopDetailClient({
   shop,
@@ -27,8 +34,41 @@ export function ShopDetailClient({
   events,
   profile,
   userClaim,
+  userStock,
 }: ShopDetailClientProps) {
+  const router = useRouter();
   const [claimOpen, setClaimOpen] = useState(false);
+  const serverMemo = userStock?.memo ?? "";
+  const [memoDraft, setMemoDraft] = useState(serverMemo);
+  const [memoLoading, setMemoLoading] = useState(false);
+  const [memoError, setMemoError] = useState<string | null>(null);
+
+  async function handleSaveMemo() {
+    if (!userStock) return;
+
+    setMemoLoading(true);
+    setMemoError(null);
+
+    const trimmed = memoDraft.trim();
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("stocks")
+      .update({ memo: trimmed || null })
+      .eq("id", userStock.id)
+      .eq("user_id", profile.id);
+
+    setMemoLoading(false);
+
+    if (error) {
+      setMemoError(error.message);
+      return;
+    }
+
+    setMemoDraft(trimmed);
+    router.refresh();
+  }
+
+  const memoDirty = memoDraft.trim() !== serverMemo.trim();
 
   return (
     <>
@@ -58,6 +98,37 @@ export function ShopDetailClient({
         )}
       </Card>
 
+      {userStock && (
+        <>
+          <SectionTitle>行きたいメモ</SectionTitle>
+          <Card className="flex flex-col gap-2">
+            <label htmlFor="stock-memo" className="text-xs text-txt-2">
+              行きたい理由（任意）
+            </label>
+            <textarea
+              id="stock-memo"
+              className={`${inputClass} min-h-[88px] resize-y`}
+              placeholder="なぜ行きたいか、どんな時に行きたいか…"
+              value={memoDraft}
+              onChange={(e) => setMemoDraft(e.target.value)}
+            />
+            {memoError && (
+              <p className="text-xs text-shu" role="alert">
+                {memoError}
+              </p>
+            )}
+            <Button
+              variant="outline"
+              className="self-end py-1.5 text-[11px]"
+              disabled={memoLoading || !memoDirty}
+              onClick={handleSaveMemo}
+            >
+              {memoLoading ? "保存中…" : "保存"}
+            </Button>
+          </Card>
+        </>
+      )}
+
       <SectionTitle>確保できる人</SectionTitle>
       {claims.length === 0 ? (
         <p className="text-sm text-txt-muted">
@@ -68,9 +139,11 @@ export function ShopDetailClient({
           {claims.map((claim) => (
             <li key={claim.id}>
               <Card className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-card-2 text-[10px] font-bold text-txt-2">
-                  {claim.nickname.charAt(0)}
-                </span>
+                <UserAvatar
+                  nickname={claim.nickname}
+                  avatarUrl={claim.avatarUrl}
+                  className="h-6 w-6 text-[10px] font-bold"
+                />
                 <span className="text-sm text-txt">{claim.nickname}</span>
                 <ConnChip type={claim.claim_type} />
                 {claim.note && (

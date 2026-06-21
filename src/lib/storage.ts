@@ -81,6 +81,49 @@ export function getCommunityLogoUrl(
   return data.publicUrl;
 }
 
+export function getAvatarUrl(
+  supabase: SupabaseClient<Database>,
+  avatarPath: string | null | undefined,
+): string | null {
+  if (!avatarPath) return null;
+  const { data } = supabase.storage.from("avatars").getPublicUrl(avatarPath);
+  return data.publicUrl;
+}
+
+export async function removeAvatarFile(
+  supabase: SupabaseClient<Database>,
+  avatarPath: string,
+): Promise<void> {
+  const { error } = await supabase.storage.from("avatars").remove([avatarPath]);
+  if (error) throw new Error(formatStorageUploadError(error));
+}
+
+export async function uploadAvatar(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  file: File,
+): Promise<string> {
+  validateImageFileSize(file);
+
+  const contentType = resolveContentType(file);
+
+  if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+    throw new Error(
+      "この画像形式には対応していません。JPEG / PNG / WebP / GIF（または HEIC）でお試しください。",
+    );
+  }
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: false, contentType });
+
+  if (error) throw new Error(formatStorageUploadError(error));
+  return path;
+}
+
 export async function uploadCommunityLogo(
   supabase: SupabaseClient<Database>,
   file: File,

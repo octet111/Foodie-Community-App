@@ -13,8 +13,9 @@
 | 9 | UIブラッシュアップ（ナビ・設定拡張・リマインド4日前・開催日時） | ✅ 2026-06-21 |
 | 10 | 機能ブラッシュアップ（ホーム分離・実績・店メモ・企画UI） | ✅ 2026-06-21 |
 | 11 | 機能ブラッシュアップ #3（参加者管理・立替者・S05 UI・締切戻し） | ✅ 2026-06-21 |
+| 12 | 機能ブラッシュアップ #4（店UI・行きたいメモ・アイコン・マイページUI） | ✅ 2026-06-21 |
 
-詳細は `Requirements-docs_and_Design/cursor_implementation_plan_v1.0.md` を参照。`implementation_spec.md` §8–§13（フェーズ6–11）。
+詳細は `Requirements-docs_and_Design/cursor_implementation_plan_v1.0.md` を参照。`implementation_spec.md` §8–§14（フェーズ6–12）。
 
 ## ディレクトリ構成
 
@@ -74,8 +75,8 @@ npx supabase db push
 
 ### Storage バケット
 
-`shop-images`（公開）/ `community`（公開・admin書込）/ `event-photos`（認証必須）は
-`supabase/migrations/20250616000000_storage.sql` で定義済み。画像上限は **15MB**。
+`shop-images`（公開）/ `community`（公開・admin書込）/ `event-photos`（認証必須）/ **`avatars`（公開読取・本人フォルダ書込）** は
+`supabase/migrations/20250616000000_storage.sql` および **`20250625000001_profile_avatars.sql`** で定義済み。画像上限は **15MB**。
 
 ### Edge Function: ogp-fetch
 
@@ -236,7 +237,7 @@ npx playwright test me auth  # フェーズ8 重点
 - **P8-7**: 要件定義 §4.1 全 AC の Playwright 網羅
 - Resend 独自ドメイン認証、`APP_URL` 本番化
 
-## フェーズ10–11: 機能ブラッシュアップ（2026-06-21）
+## フェーズ10–12: 機能ブラッシュアップ（2026-06-21）
 
 ### フェーズ10（概要）
 
@@ -258,10 +259,26 @@ npx playwright test me auth  # フェーズ8 重点
 | 削除ボタン | `Button` の `danger` バリアント（朱色）。企画削除・コメント削除等 |
 | DB | `20250624000001_set_event_finalizer.sql`（`set_event_finalizer`, `ensure_settlement` 更新） |
 
+### フェーズ12 機能ブラッシュアップ #4
+
+| 区分 | 内容 |
+|---|---|
+| 店リスト S07 UI | 「＋ 店を追加」を企画一覧と同様 **上部 primary 全幅**ボタンに統一（`ShopsPageClient`） |
+| 行きたいメモ | `stocks.memo` を店追加モーダル・S08 店詳細で入力・編集。S07 一覧・マイページは表示のみ |
+| プロフィールアイコン | `profiles.avatar_path` + Storage `avatars`。マイページで変更・削除。未設定時はニックネーム頭文字 |
+| `UserAvatar` | ヘッダー・企画詳細（参加者/コメント）・店（確保宣言）・マイページで共通表示 |
+| マイページ UI | ニックネーム編集時は入力欄を全幅配置。アイコンとテキストの重なり防止（grid レイアウト） |
+| DB | `20250625000001_profile_avatars.sql` |
+| E2E | `shops.spec.ts` — 店追加時の行きたいメモ入力・詳細表示を確認 |
+
 ### マイグレーション（未適用の場合）
 
 ```bash
 npx supabase db push
 ```
 
-未適用の例: `20250623000001` / `20250623000002` / **`20250624000001`**
+未適用の例: `20250624000001` / **`20250625000001`**
+
+### マイグレーション履歴が食い違う場合
+
+リモートにローカルにない ID（ダッシュボード等で適用した場合）があると `db push` が失敗する。`supabase migration list` で Local / Remote を確認し、スキーマが既に反映済みなら `migration repair` で履歴を揃える（2026-06-21 対応例: リモート専用 `20260621*` を reverted、ローカル `20250622*`〜`20250624*` を applied）。

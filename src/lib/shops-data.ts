@@ -1,5 +1,6 @@
 import type { ClaimType } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
+import { getAvatarUrl } from "@/lib/storage";
 import type { Tables } from "@/types/database";
 
 export type Shop = Tables<"shops">;
@@ -16,6 +17,7 @@ export type ClaimItem = {
   note: string | null;
   user_id: string;
   nickname: string;
+  avatarUrl: string | null;
 };
 
 export type ShopClaimGroup = {
@@ -28,6 +30,11 @@ export type ShopEvent = {
   title: string;
   held_at: string;
   status: Tables<"events">["status"];
+};
+
+export type UserStock = {
+  id: string;
+  memo: string | null;
 };
 
 export async function getUserStocks(userId: string): Promise<StockItem[]> {
@@ -54,7 +61,7 @@ export async function getClaimGroups(): Promise<ShopClaimGroup[]> {
   const { data, error } = await supabase
     .from("secure_claims")
     .select(
-      "id, claim_type, note, user_id, shop:shops(*), profile:profiles(nickname)",
+      "id, claim_type, note, user_id, shop:shops(*), profile:profiles(nickname, avatar_path)",
     )
     .order("created_at", { ascending: false });
 
@@ -65,13 +72,17 @@ export async function getClaimGroups(): Promise<ShopClaimGroup[]> {
   for (const row of data) {
     if (!row.shop) continue;
     const shop = row.shop as Shop;
-    const profile = row.profile as { nickname: string } | null;
+    const profile = row.profile as {
+      nickname: string;
+      avatar_path: string | null;
+    } | null;
     const claim: ClaimItem = {
       id: row.id,
       claim_type: row.claim_type,
       note: row.note,
       user_id: row.user_id,
       nickname: profile?.nickname ?? "不明",
+      avatarUrl: getAvatarUrl(supabase, profile?.avatar_path),
     };
 
     const existing = groups.get(shop.id);
@@ -101,19 +112,26 @@ export async function getShopClaims(shopId: string): Promise<ClaimItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("secure_claims")
-    .select("id, claim_type, note, user_id, profile:profiles(nickname)")
+    .select("id, claim_type, note, user_id, profile:profiles(nickname, avatar_path)")
     .eq("shop_id", shopId)
     .order("created_at", { ascending: true });
 
   if (error || !data) return [];
 
-  return data.map((row) => ({
-    id: row.id,
-    claim_type: row.claim_type,
-    note: row.note,
-    user_id: row.user_id,
-    nickname: (row.profile as { nickname: string } | null)?.nickname ?? "不明",
-  }));
+  return data.map((row) => {
+    const profile = row.profile as {
+      nickname: string;
+      avatar_path: string | null;
+    } | null;
+    return {
+      id: row.id,
+      claim_type: row.claim_type,
+      note: row.note,
+      user_id: row.user_id,
+      nickname: profile?.nickname ?? "不明",
+      avatarUrl: getAvatarUrl(supabase, profile?.avatar_path),
+    };
+  });
 }
 
 export async function getShopEvents(shopId: string): Promise<ShopEvent[]> {
@@ -136,19 +154,40 @@ export async function getUserClaimForShop(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("secure_claims")
-    .select("id, claim_type, note, user_id, profile:profiles(nickname)")
+    .select("id, claim_type, note, user_id, profile:profiles(nickname, avatar_path)")
     .eq("shop_id", shopId)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (error || !data) return null;
 
+  const profile = data.profile as {
+    nickname: string;
+    avatar_path: string | null;
+  } | null;
+
   return {
     id: data.id,
     claim_type: data.claim_type,
     note: data.note,
     user_id: data.user_id,
-    nickname:
-      (data.profile as { nickname: string } | null)?.nickname ?? "不明",
+    nickname: profile?.nickname ?? "不明",
+    avatarUrl: getAvatarUrl(supabase, profile?.avatar_path),
   };
+}
+
+export async function getUserStockForShop(
+  shopId: string,
+  userId: string,
+): Promise<UserStock | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("stocks")
+    .select("id, memo")
+    .eq("shop_id", shopId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data;
 }

@@ -294,6 +294,7 @@ export function SettlementPageClient({
                   user_id: data.user_id,
                   event_part_id: data.event_part_id,
                   nickname: nicknameByUserId.get(draft.user_id) ?? "不明",
+                  avatarUrl: null,
                 }
               : p,
           );
@@ -483,6 +484,7 @@ export function SettlementPageClient({
           user_id: userId,
           event_part_id: partId,
           nickname: nicknameByUserId.get(userId) ?? "不明",
+          avatarUrl: null,
         },
       ]);
     } else {

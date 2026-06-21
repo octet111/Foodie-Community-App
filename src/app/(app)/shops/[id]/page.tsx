@@ -7,6 +7,7 @@ import {
   getShopClaims,
   getShopEvents,
   getUserClaimForShop,
+  getUserStockForShop,
 } from "@/lib/shops-data";
 
 type ShopDetailPageProps = {
@@ -21,10 +22,11 @@ export default async function ShopDetailPage({ params }: ShopDetailPageProps) {
   const shop = await getShopById(id);
   if (!shop) notFound();
 
-  const [claims, events, userClaim] = await Promise.all([
+  const [claims, events, userClaim, userStock] = await Promise.all([
     getShopClaims(id),
     getShopEvents(id),
     getUserClaimForShop(id, profile.id),
+    getUserStockForShop(id, profile.id),
   ]);
 
   return (
@@ -38,6 +40,7 @@ export default async function ShopDetailPage({ params }: ShopDetailPageProps) {
         events={events}
         profile={profile}
         userClaim={userClaim}
+        userStock={userStock}
       />
     </div>
   );

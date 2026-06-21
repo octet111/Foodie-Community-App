@@ -1,8 +1,15 @@
 import type { EventStatus } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import type { Shop } from "@/lib/shops-data";
+import { getAvatarUrl } from "@/lib/storage";
 import type { Tables } from "@/types/database";
 import type { PartStats } from "@/lib/event-participation";
+
+export type MemberProfile = {
+  id: string;
+  nickname: string;
+  avatarUrl: string | null;
+};
 
 export type EventRow = Tables<"events">;
 
@@ -21,6 +28,7 @@ export type ParticipationRow = {
   id: string;
   user_id: string;
   nickname: string;
+  avatarUrl: string | null;
   event_part_id: string;
 };
 
@@ -29,6 +37,7 @@ export type CommentRow = {
   body: string;
   user_id: string;
   nickname: string;
+  avatarUrl: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -162,10 +171,13 @@ export async function getEventById(
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, nickname");
+    .select("id, nickname, avatar_path");
 
   const nicknameById = new Map(
     (profiles ?? []).map((p) => [p.id, p.nickname]),
+  );
+  const avatarUrlById = new Map(
+    (profiles ?? []).map((p) => [p.id, getAvatarUrl(supabase, p.avatar_path)]),
   );
 
   const participations: ParticipationRow[] = [];
@@ -176,6 +188,7 @@ export async function getEventById(
         id: p.id,
         user_id: p.user_id,
         nickname: nicknameById.get(p.user_id) ?? "不明",
+        avatarUrl: avatarUrlById.get(p.user_id) ?? null,
         event_part_id: part.id,
       });
     }
@@ -192,6 +205,7 @@ export async function getEventById(
     body: c.body,
     user_id: c.user_id,
     nickname: nicknameById.get(c.user_id) ?? "不明",
+    avatarUrl: avatarUrlById.get(c.user_id) ?? null,
     created_at: c.created_at,
     updated_at: c.updated_at,
   }));
@@ -220,17 +234,19 @@ export async function getEventById(
   };
 }
 
-export async function getMemberProfiles(): Promise<
-  { id: string; nickname: string }[]
-> {
+export async function getMemberProfiles(): Promise<MemberProfile[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, nickname")
+    .select("id, nickname, avatar_path")
     .order("nickname");
 
   if (error || !data) return [];
-  return data;
+  return data.map((p) => ({
+    id: p.id,
+    nickname: p.nickname,
+    avatarUrl: getAvatarUrl(supabase, p.avatar_path),
+  }));
 }
 
 export async function getOrganizerEvents(

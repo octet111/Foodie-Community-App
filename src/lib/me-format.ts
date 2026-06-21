@@ -1,4 +1,3 @@
-import type { ClaimType } from "@/lib/constants";
 import { CLAIM_LABELS } from "@/lib/constants";
 import { formatHeldAt } from "@/lib/event-dates";
 import { formatParticipationSummary } from "@/lib/event-participation";
