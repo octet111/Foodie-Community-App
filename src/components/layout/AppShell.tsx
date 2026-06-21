@@ -22,14 +22,14 @@ export function AppShell({
   return (
     <div className="flex min-h-full flex-1">
       <SideNav />
-      <div className="flex min-h-full flex-1 flex-col">
+      <div className="flex min-h-full min-w-0 flex-1 flex-col">
         <AppHeader
           community={community}
           profile={profile}
           notifications={notifications}
           title={headerTitle}
         />
-        <main className="flex-1 overflow-y-auto p-[var(--space-body-pad)]">
+        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-[var(--space-body-pad)]">
           {children}
         </main>
         <BottomNav />

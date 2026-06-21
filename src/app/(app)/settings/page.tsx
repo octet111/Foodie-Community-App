@@ -1,10 +1,22 @@
-import { SectionTitle } from "@/components/ui/SectionTitle";
+import { redirect } from "next/navigation";
+import { SettingsPageClient } from "@/components/settings/SettingsPageClient";
+import { getCurrentProfile } from "@/lib/app-data";
+import { getSettingsPageData } from "@/lib/settings-data";
 
-export default function SettingsPage() {
+export const metadata = {
+  title: "コミュニティ設定",
+};
+
+export default async function SettingsPage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (profile.role !== "admin") redirect("/me");
+
+  const data = await getSettingsPageData();
+
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-3">
-      <SectionTitle>コミュニティ設定</SectionTitle>
-      <p className="text-sm text-txt-2">フェーズ8（S11）で実装予定です。</p>
+    <div className="mx-auto max-w-2xl">
+      <SettingsPageClient profile={profile} initial={data} />
     </div>
   );
 }

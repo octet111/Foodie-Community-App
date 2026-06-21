@@ -2,6 +2,10 @@ import { SectionTitle } from "@/components/ui/SectionTitle";
 import { EventsPageClient } from "@/components/events/EventsPageClient";
 import { getEventsList } from "@/lib/events-data";
 
+export const metadata = {
+  title: "企画一覧",
+};
+
 export default async function HomePage() {
   const events = await getEventsList();
 

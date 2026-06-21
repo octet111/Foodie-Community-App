@@ -73,6 +73,39 @@ export function formatStorageUploadError(error: unknown): string {
   return "画像のアップロードに失敗しました。";
 }
 
+export function getCommunityLogoUrl(
+  supabase: SupabaseClient<Database>,
+  logoPath: string,
+): string {
+  const { data } = supabase.storage.from("community").getPublicUrl(logoPath);
+  return data.publicUrl;
+}
+
+export async function uploadCommunityLogo(
+  supabase: SupabaseClient<Database>,
+  file: File,
+): Promise<string> {
+  validateImageFileSize(file);
+
+  const contentType = resolveContentType(file);
+
+  if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+    throw new Error(
+      "この画像形式には対応していません。JPEG / PNG / WebP / GIF（または HEIC）でお試しください。",
+    );
+  }
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `logo/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("community")
+    .upload(path, file, { upsert: false, contentType });
+
+  if (error) throw new Error(formatStorageUploadError(error));
+  return path;
+}
+
 export async function uploadShopImage(
   supabase: SupabaseClient<Database>,
   userId: string,

@@ -4,6 +4,10 @@ import { ShopsPageClient } from "@/components/shops/ShopsPageClient";
 import { getCurrentProfile } from "@/lib/app-data";
 import { getClaimGroups, getUserStocks } from "@/lib/shops-data";
 
+export const metadata = {
+  title: "店リスト",
+};
+
 export default async function ShopsPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");

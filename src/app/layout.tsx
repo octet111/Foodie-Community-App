@@ -16,8 +16,14 @@ const shippori = Shippori_Mincho({
 });
 
 export const metadata: Metadata = {
-  title: "フーディコミュニティ",
-  description: "食のコミュニティ運営アプリ",
+  title: {
+    default: "フーディコミュニティ",
+    template: "%s | フーディコミュニティ",
+  },
+  description: "食のコミュニティ運営アプリ — 企画・店・精算をひとつに",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

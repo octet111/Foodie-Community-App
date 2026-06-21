@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const TEST_PASSWORD = "TestPass123!";
 
 test.describe("auth", () => {
-  test("登録 → ログアウト → ログイン", async ({ page, context }) => {
+  test("登録 → ログアウト → ログイン", async ({ page }) => {
     const email = `e2e-${Date.now()}@foodie-test.local`;
     const nickname = `e2e-user-${Date.now()}`;
 
@@ -15,9 +15,12 @@ test.describe("auth", () => {
     await page.getByRole("button", { name: "登録する" }).click();
 
     await expect(page).toHaveURL("/");
-    await expect(page.getByText("企画一覧")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "企画一覧" })).toBeVisible();
 
-    await context.clearCookies();
+    await page.goto("/me");
+    await page.getByRole("button", { name: "ログアウト" }).click();
+    await expect(page).toHaveURL("/login");
+
     await page.goto("/login");
     await expect(page).toHaveURL("/login");
 
@@ -26,7 +29,7 @@ test.describe("auth", () => {
     await page.getByRole("button", { name: "ログイン" }).click();
 
     await expect(page).toHaveURL("/");
-    await expect(page.getByText("企画一覧")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "企画一覧" })).toBeVisible();
   });
 
   test("誤パスワードでエラー表示", async ({ page }) => {

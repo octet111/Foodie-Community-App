@@ -3,11 +3,13 @@ import {
   DEFAULT_COMMUNITY_NAME,
   DEFAULT_LOGO_CHAR,
 } from "@/lib/constants";
+import { getCommunityLogoUrl } from "@/lib/storage";
 import type { NotificationItem } from "@/lib/notifications-data";
 
 export type CommunitySettings = {
   name: string;
   logoPath: string | null;
+  logoUrl: string | null;
   logoChar: string;
 };
 
@@ -26,10 +28,15 @@ export async function getCommunitySettings(): Promise<CommunitySettings> {
     .maybeSingle();
 
   const name = data?.name ?? DEFAULT_COMMUNITY_NAME;
+  const logoPath = data?.logo_path ?? null;
+  const logoUrl = logoPath
+    ? getCommunityLogoUrl(supabase, logoPath)
+    : null;
 
   return {
     name,
-    logoPath: data?.logo_path ?? null,
+    logoPath,
+    logoUrl,
     logoChar: name.charAt(0) || DEFAULT_LOGO_CHAR,
   };
 }

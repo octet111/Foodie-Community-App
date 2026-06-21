@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { EventListItem } from "@/lib/events-data";
 import { dateKeyInJst, getCalendarCells } from "@/lib/event-dates";
@@ -155,6 +156,14 @@ export function EventsPageClient({ events }: EventsPageClientProps) {
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-txt-muted">
           {openOnly ? "募集中の企画はありません" : "企画がまだありません"}
+          {!openOnly && (
+            <>
+              {" "}
+              <Link href="/events/new" className="text-brass underline-offset-2 hover:underline">
+                企画を立てる
+              </Link>
+            </>
+          )}
         </p>
       ) : (
         filtered.map((event) => <EventCard key={event.id} event={event} />)

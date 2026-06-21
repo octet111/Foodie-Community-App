@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { AppProfile, CommunitySettings } from "@/lib/app-data";
 import type { NotificationItem } from "@/lib/notifications-data";
@@ -20,8 +21,19 @@ export function AppHeader({
 
   return (
     <header className="flex shrink-0 items-center gap-2.5 border-b border-brass bg-bg/95 px-4 py-3 backdrop-blur-sm">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-brass font-display text-[15px] font-semibold text-brass">
-        {community.logoChar}
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md border border-brass font-display text-[15px] font-semibold text-brass">
+        {community.logoUrl ? (
+          <Image
+            src={community.logoUrl}
+            alt=""
+            width={28}
+            height={28}
+            className="h-full w-full object-cover"
+            unoptimized
+          />
+        ) : (
+          community.logoChar
+        )}
       </div>
       <h1 className="min-w-0 flex-1 truncate font-display text-[15px] tracking-[var(--tracking-cname)] text-heading">
         {displayTitle}
