@@ -14,7 +14,7 @@ test.describe("me", () => {
     await page.getByLabel("パスワード", { exact: true }).fill(TEST_PASSWORD);
     await page.getByLabel("パスワード（確認）").fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "登録する" }).click();
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/events");
 
     await page.goto("/me");
     await expect(page.getByText(nickname).first()).toBeVisible();
@@ -42,7 +42,7 @@ test.describe("me", () => {
     await page.getByLabel("パスワード", { exact: true }).fill(TEST_PASSWORD);
     await page.getByLabel("パスワード（確認）").fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "登録する" }).click();
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/events");
 
     await page.goto("/settings");
     await expect(page).toHaveURL("/me");

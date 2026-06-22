@@ -14,7 +14,7 @@ test.describe("shops", () => {
     await page.getByLabel("パスワード", { exact: true }).fill(TEST_PASSWORD);
     await page.getByLabel("パスワード（確認）").fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "登録する" }).click();
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/events");
 
     await page.goto("/shops");
     await expect(page.getByRole("heading", { name: "店リスト" })).toBeVisible();

@@ -28,7 +28,7 @@ test.describe("events", () => {
     await organizerPage.getByLabel("パスワード", { exact: true }).fill(TEST_PASSWORD);
     await organizerPage.getByLabel("パスワード（確認）").fill(TEST_PASSWORD);
     await organizerPage.getByRole("button", { name: "登録する" }).click();
-    await expect(organizerPage).toHaveURL("/");
+    await expect(organizerPage).toHaveURL("/events");
 
     await organizerPage.goto("/shops");
     await organizerPage.getByRole("button", { name: "＋ 店を追加（URL貼付）" }).click();
@@ -59,7 +59,7 @@ test.describe("events", () => {
     await memberPage.getByLabel("パスワード", { exact: true }).fill(TEST_PASSWORD);
     await memberPage.getByLabel("パスワード（確認）").fill(TEST_PASSWORD);
     await memberPage.getByRole("button", { name: "登録する" }).click();
-    await expect(memberPage).toHaveURL("/");
+    await expect(memberPage).toHaveURL("/events");
 
     await memberPage.goto("/events");
     await memberPage.getByText(eventTitle).click();

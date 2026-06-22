@@ -14,8 +14,8 @@ test.describe("auth", () => {
     await page.getByLabel("パスワード（確認）").fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "登録する" }).click();
 
-    await expect(page).toHaveURL("/");
-    await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
+    await expect(page).toHaveURL("/events");
+    await expect(page.getByRole("heading", { name: "企画一覧" })).toBeVisible();
 
     await page.goto("/me");
     await page.getByRole("button", { name: "ログアウト" }).click();
@@ -28,8 +28,8 @@ test.describe("auth", () => {
     await page.getByLabel("パスワード").fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "ログイン" }).click();
 
-    await expect(page).toHaveURL("/");
-    await expect(page.getByRole("heading", { name: "ホーム" })).toBeVisible();
+    await expect(page).toHaveURL("/events");
+    await expect(page.getByRole("heading", { name: "企画一覧" })).toBeVisible();
   });
 
   test("誤パスワードでエラー表示", async ({ page }) => {
