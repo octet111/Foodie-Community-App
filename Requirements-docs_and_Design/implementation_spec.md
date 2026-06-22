@@ -58,7 +58,7 @@
 | 画面 | パス |
 |---|---|
 | S01-03 認証 | /login /signup /reset |
-| ホーム | `/`（企画一覧・店リストへの導線） |
+| ルート `/` | `/events` へリダイレクト（ログイン後の初期画面は企画一覧） |
 | S04 企画一覧 | `/events`（リスト・カレンダー切替。募集中・締切のみ） |
 | 実績リスト | `/records`（精算確定済み企画のみ） |
 | S05 企画詳細 | /events/[id]（未参加/参加済み/企画者で表示分岐） |
@@ -269,7 +269,7 @@
 | 企画作成 | 企画一覧上部「＋ 企画を作成」（`EventsPageClient`）。ナビ FAB は廃止 |
 | マイページ | 設定リンク削除。admin はナビの「設定」からアクセス |
 
-> **2026-06-21 追記（§12）**: ホーム `/` をナビ外のハブ画面に分離。ナビ「企画」は `/events` へ。実績タブ追加。
+> **2026-06-21 追記（§12）**: 当初はホーム `/` をナビ外のハブ画面に分離し企画一覧を `/events` へ移動。**2026-06-22**: ハブ画面を廃止し `/` は `/events` へリダイレクト。ナビ「企画」は `/events`。実績タブ追加。
 
 ### 11.2 設定画面（S11 拡張）
 
@@ -335,11 +335,13 @@
 
 | 項目 | 内容 |
 |---|---|
-| ホーム `/` | `HomePageClient` — 「企画一覧」「店リスト」への導線ボタン（ナビタブには含めない） |
+| ルート `/` | `/events` へリダイレクト（`page.tsx` の `redirect`）。ログイン・登録後の遷移先も `/` 経由で企画一覧へ |
 | 企画一覧 | `/events` — `getEventsList()` は `open` / `closed` のみ。精算確定済みは除外 |
 | 実績リスト | `/records` — `getCompletedEventsList()` は `settlements.status = finalized` の企画のみ |
 | ナビ | 企画 → `/events`、店 → `/shops`、**実績** → `/records`、マイページ、設定（admin） |
-| 実装 | `src/app/(app)/page.tsx`, `events/page.tsx`, `records/page.tsx`, `constants.ts` NAV_ITEMS |
+| 実装 | `src/app/(app)/page.tsx`（リダイレクト）, `events/page.tsx`, `records/page.tsx`, `constants.ts` NAV_ITEMS |
+
+> **2026-06-22**: フェーズ10当初の `HomePageClient`（企画一覧・店リスト導線ハブ）は廃止。
 
 ### 12.2 店リスト・店詳細（S07/S08）
 
@@ -396,7 +398,7 @@
 | 種別 | 内容 |
 |---|---|
 | E2E | `events.spec.ts` — 定員到達後も「募集中」維持・「取り消す」表示を確認 |
-| E2E | `auth.spec.ts` — ログイン後ホーム見出し「ホーム」 |
+| E2E | `auth.spec.ts` — ログイン後 URL `/events`、見出し「企画一覧」 |
 
 ---
 
