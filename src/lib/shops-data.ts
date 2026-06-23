@@ -11,6 +11,7 @@ export type StockItem = {
   is_private: boolean;
   user_id: string;
   nickname?: string;
+  has_event?: boolean;
   shop: Shop;
 };
 
@@ -40,6 +41,27 @@ export type UserStock = {
   memo: string | null;
   is_private: boolean;
 };
+
+export async function getShopIdsWithEvents(): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("shop_id")
+    .is("deleted_at", null);
+
+  if (error || !data) return new Set();
+  return new Set(data.map((row) => row.shop_id));
+}
+
+export function markPlannedStocks(
+  stocks: StockItem[],
+  plannedShopIds: Set<string>,
+): StockItem[] {
+  return stocks.map((item) => ({
+    ...item,
+    has_event: plannedShopIds.has(item.shop.id),
+  }));
+}
 
 export async function getUserStocks(userId: string): Promise<StockItem[]> {
   const supabase = await createClient();

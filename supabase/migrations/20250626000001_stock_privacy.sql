@@ -1,8 +1,8 @@
--- stocks に非公開フラグを追加（デフォルト非公開＝自分だけ表示）
+-- stocks に非公開フラグを追加（デフォルト公開）
 alter table public.stocks
-  add column is_private boolean not null default true;
+  add column is_private boolean not null default false;
 
-comment on column public.stocks.is_private is 'true=自分だけ表示、false=コミュニティに公開';
+comment on column public.stocks.is_private is 'true=自分だけ表示、false=コミュニティに公開（デフォルト公開）';
 
 -- RLS: 本人のストックは全件、他者のストックは is_private=false のみ閲覧可
 drop policy if exists "stocks_all_own" on public.stocks;

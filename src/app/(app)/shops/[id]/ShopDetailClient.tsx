@@ -39,7 +39,7 @@ export function ShopDetailClient({
   const router = useRouter();
   const [claimOpen, setClaimOpen] = useState(false);
   const serverMemo = userStock?.memo ?? "";
-  const serverIsPrivate = userStock?.is_private ?? true;
+  const serverIsPrivate = userStock?.is_private ?? false;
   const [memoDraft, setMemoDraft] = useState(serverMemo);
   const [isPrivate, setIsPrivate] = useState(serverIsPrivate);
   const [memoLoading, setMemoLoading] = useState(false);

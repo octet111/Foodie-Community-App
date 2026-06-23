@@ -35,7 +35,7 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [rarity, setRarity] = useState<ShopRarity>("reservable");
   const [memo, setMemo] = useState("");
-  const [isPrivate, setIsPrivate] = useState(true);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -52,7 +52,7 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
     setImageFile(null);
     setRarity("reservable");
     setMemo("");
-    setIsPrivate(true);
+    setIsPrivate(false);
     setManualMode(false);
     setPreviewReady(false);
     setError(null);
