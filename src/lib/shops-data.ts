@@ -8,6 +8,9 @@ export type Shop = Tables<"shops">;
 export type StockItem = {
   id: string;
   memo: string | null;
+  is_private: boolean;
+  user_id: string;
+  nickname?: string;
   shop: Shop;
 };
 
@@ -35,13 +38,14 @@ export type ShopEvent = {
 export type UserStock = {
   id: string;
   memo: string | null;
+  is_private: boolean;
 };
 
 export async function getUserStocks(userId: string): Promise<StockItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("stocks")
-    .select("id, memo, shop:shops(*)")
+    .select("id, memo, is_private, user_id, shop:shops(*)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -52,8 +56,38 @@ export async function getUserStocks(userId: string): Promise<StockItem[]> {
     .map((row) => ({
       id: row.id,
       memo: row.memo,
+      is_private: row.is_private,
+      user_id: row.user_id,
       shop: row.shop as Shop,
     }));
+}
+
+export async function getPublicStocks(excludeUserId: string): Promise<StockItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("stocks")
+    .select(
+      "id, memo, is_private, user_id, shop:shops(*), profile:profiles(nickname)",
+    )
+    .eq("is_private", false)
+    .neq("user_id", excludeUserId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data
+    .filter((row) => row.shop)
+    .map((row) => {
+      const profile = row.profile as { nickname: string } | null;
+      return {
+        id: row.id,
+        memo: row.memo,
+        is_private: row.is_private,
+        user_id: row.user_id,
+        nickname: profile?.nickname,
+        shop: row.shop as Shop,
+      };
+    });
 }
 
 export async function getClaimGroups(): Promise<ShopClaimGroup[]> {
@@ -183,7 +217,7 @@ export async function getUserStockForShop(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("stocks")
-    .select("id, memo")
+    .select("id, memo, is_private")
     .eq("shop_id", shopId)
     .eq("user_id", userId)
     .maybeSingle();

@@ -9,20 +9,26 @@ import { ShopClaimCard } from "@/components/shops/ShopClaimCard";
 import { ShopStockCard } from "@/components/shops/ShopStockCard";
 
 type Tab = "stocks" | "claims";
+type StockView = "mine" | "public";
 
 type ShopsPageClientProps = {
   profile: AppProfile;
   stocks: StockItem[];
+  publicStocks: StockItem[];
   claimGroups: ShopClaimGroup[];
 };
 
 export function ShopsPageClient({
   profile,
   stocks,
+  publicStocks,
   claimGroups,
 }: ShopsPageClientProps) {
   const [tab, setTab] = useState<Tab>("stocks");
+  const [stockView, setStockView] = useState<StockView>("mine");
   const [addOpen, setAddOpen] = useState(false);
+
+  const displayedStocks = stockView === "mine" ? stocks : publicStocks;
 
   return (
     <>
@@ -52,14 +58,46 @@ export function ShopsPageClient({
           </button>
         </div>
 
+        {tab === "stocks" && (
+          <div className="flex rounded-[var(--radius-btn)] border border-line/60 bg-card/50 p-0.5">
+            <button
+              type="button"
+              className={`flex-1 rounded-md py-1 text-[11px] font-bold ${
+                stockView === "mine" ? "bg-card-2 text-txt" : "text-txt-muted"
+              }`}
+              onClick={() => setStockView("mine")}
+            >
+              自分
+            </button>
+            <button
+              type="button"
+              className={`flex-1 rounded-md py-1 text-[11px] font-bold ${
+                stockView === "public" ? "bg-card-2 text-txt" : "text-txt-muted"
+              }`}
+              onClick={() => setStockView("public")}
+            >
+              みんな
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
           {tab === "stocks" ? (
-            stocks.length === 0 ? (
+            displayedStocks.length === 0 ? (
               <p className="py-8 text-center text-sm text-txt-muted">
-                行きたい店がまだありません。上のボタンから店を追加しましょう。
+                {stockView === "mine"
+                  ? "行きたい店がまだありません。上のボタンから店を追加しましょう。"
+                  : "公開されている行きたい店はまだありません。"}
               </p>
             ) : (
-              stocks.map((item) => <ShopStockCard key={item.id} item={item} />)
+              displayedStocks.map((item) => (
+                <ShopStockCard
+                  key={item.id}
+                  item={item}
+                  showOwner={stockView === "public"}
+                  showPrivacy={stockView === "mine"}
+                />
+              ))
             )
           ) : claimGroups.length === 0 ? (
             <p className="py-8 text-center text-sm text-txt-muted">

@@ -6,9 +6,15 @@ import { ShopThumb } from "@/components/shops/ShopThumb";
 
 type ShopStockCardProps = {
   item: StockItem;
+  showOwner?: boolean;
+  showPrivacy?: boolean;
 };
 
-export function ShopStockCard({ item }: ShopStockCardProps) {
+export function ShopStockCard({
+  item,
+  showOwner = false,
+  showPrivacy = false,
+}: ShopStockCardProps) {
   const { shop } = item;
 
   return (
@@ -22,11 +28,19 @@ export function ShopStockCard({ item }: ShopStockCardProps) {
             </h3>
             <RarityBadge rarity={shop.rarity} />
           </div>
+          {showOwner && item.nickname && (
+            <p className="mt-0.5 text-[11px] text-txt-muted">{item.nickname}</p>
+          )}
           {shop.area && (
             <p className="mt-0.5 text-xs text-txt-muted">{shop.area}</p>
           )}
           {item.memo && (
             <p className="mt-1 text-xs text-txt-2">{item.memo}</p>
+          )}
+          {showPrivacy && (
+            <p className="mt-1 text-[10px] text-txt-muted">
+              {item.is_private ? "非公開（自分だけ）" : "公開"}
+            </p>
           )}
         </div>
       </Card>

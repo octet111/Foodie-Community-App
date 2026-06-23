@@ -35,6 +35,7 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [rarity, setRarity] = useState<ShopRarity>("reservable");
   const [memo, setMemo] = useState("");
+  const [isPrivate, setIsPrivate] = useState(true);
   const [manualMode, setManualMode] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -51,6 +52,7 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
     setImageFile(null);
     setRarity("reservable");
     setMemo("");
+    setIsPrivate(true);
     setManualMode(false);
     setPreviewReady(false);
     setError(null);
@@ -133,6 +135,7 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
         shop_id: shop.id,
         user_id: userId,
         memo: memo.trim() || null,
+        is_private: isPrivate,
       });
 
       if (stockError && stockError.code !== "23505") throw stockError;
@@ -283,6 +286,15 @@ export function ShopAddModal({ open, onClose, userId }: ShopAddModalProps) {
                 onChange={(e) => setMemo(e.target.value)}
               />
             </div>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-txt">
+              <input
+                type="checkbox"
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+                className="rounded border-line"
+              />
+              非公開（自分だけ表示）
+            </label>
           </>
         )}
 

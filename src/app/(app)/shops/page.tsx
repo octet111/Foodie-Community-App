@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { ShopsPageClient } from "@/components/shops/ShopsPageClient";
 import { getCurrentProfile } from "@/lib/app-data";
-import { getClaimGroups, getUserStocks } from "@/lib/shops-data";
+import { getClaimGroups, getPublicStocks, getUserStocks } from "@/lib/shops-data";
 
 export const metadata = {
   title: "店リスト",
@@ -12,8 +12,9 @@ export default async function ShopsPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
 
-  const [stocks, claimGroups] = await Promise.all([
+  const [stocks, publicStocks, claimGroups] = await Promise.all([
     getUserStocks(profile.id),
+    getPublicStocks(profile.id),
     getClaimGroups(),
   ]);
 
@@ -23,6 +24,7 @@ export default async function ShopsPage() {
       <ShopsPageClient
         profile={profile}
         stocks={stocks}
+        publicStocks={publicStocks}
         claimGroups={claimGroups}
       />
     </div>

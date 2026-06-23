@@ -39,9 +39,13 @@ export function ShopDetailClient({
   const router = useRouter();
   const [claimOpen, setClaimOpen] = useState(false);
   const serverMemo = userStock?.memo ?? "";
+  const serverIsPrivate = userStock?.is_private ?? true;
   const [memoDraft, setMemoDraft] = useState(serverMemo);
+  const [isPrivate, setIsPrivate] = useState(serverIsPrivate);
   const [memoLoading, setMemoLoading] = useState(false);
+  const [privacyLoading, setPrivacyLoading] = useState(false);
   const [memoError, setMemoError] = useState<string | null>(null);
+  const [privacyError, setPrivacyError] = useState<string | null>(null);
 
   async function handleSaveMemo() {
     if (!userStock) return;
@@ -65,6 +69,31 @@ export function ShopDetailClient({
     }
 
     setMemoDraft(trimmed);
+    router.refresh();
+  }
+
+  async function handleTogglePrivacy() {
+    if (!userStock) return;
+
+    const next = !isPrivate;
+    setPrivacyLoading(true);
+    setPrivacyError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("stocks")
+      .update({ is_private: next })
+      .eq("id", userStock.id)
+      .eq("user_id", profile.id);
+
+    setPrivacyLoading(false);
+
+    if (error) {
+      setPrivacyError(error.message);
+      return;
+    }
+
+    setIsPrivate(next);
     router.refresh();
   }
 
@@ -125,6 +154,30 @@ export function ShopDetailClient({
             >
               {memoLoading ? "保存中…" : "保存"}
             </Button>
+          </Card>
+
+          <SectionTitle>公開設定</SectionTitle>
+          <Card className="flex flex-col gap-2">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-txt">
+              <input
+                type="checkbox"
+                checked={isPrivate}
+                disabled={privacyLoading}
+                onChange={handleTogglePrivacy}
+                className="rounded border-line"
+              />
+              非公開（自分だけ表示）
+            </label>
+            <p className="text-[11px] text-txt-muted">
+              {isPrivate
+                ? "この店はあなたのリストにのみ表示されます。"
+                : "コミュニティの「みんな」タブに表示されます。"}
+            </p>
+            {privacyError && (
+              <p className="text-xs text-shu" role="alert">
+                {privacyError}
+              </p>
+            )}
           </Card>
         </>
       )}
