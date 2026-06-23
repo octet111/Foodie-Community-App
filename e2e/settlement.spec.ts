@@ -125,6 +125,12 @@ test.describe("settlement", () => {
 
     await expect(bAmountInput).toHaveCount(0);
 
+    // 確定後も支払チェックは可能
+    const bPaidCheckbox = bRow.locator("td").nth(3).getByRole("checkbox");
+    await expect(bPaidCheckbox).toBeEnabled();
+    await bPaidCheckbox.click();
+    await expect(bPaidCheckbox).toBeChecked();
+
     await orgCtx.close();
     await bCtx.close();
     await cCtx.close();

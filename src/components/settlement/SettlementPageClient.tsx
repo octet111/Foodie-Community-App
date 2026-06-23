@@ -517,19 +517,19 @@ export function SettlementPageClient({
     setManualAmountOverrides((prev) => ({ ...prev, [userId]: amount }));
   }
 
-  async function handlePaidToggle(itemId: string, paid: boolean) {
-    if (
-      !isManager ||
-      isFinalized ||
-      isDraftSettlementItemId(itemId) ||
-      busy
-    ) {
-      return;
-    }
+  async function handlePaidToggle(userId: string, paid: boolean) {
+    if (!isManager || busy) return;
+
+    const persisted = savedItems.find(
+      (i) => i.user_id === userId && isPersistedSettlementItemId(i.id),
+    );
+    if (!persisted) return;
+
+    const itemId = persisted.id;
 
     const updatePaid = (items: SettlementItemRow[]) =>
       items.map((i) =>
-        i.id === itemId
+        i.user_id === userId
           ? {
               ...i,
               paid,
@@ -555,7 +555,7 @@ export function SettlementPageClient({
     if (updateError) {
       const revertPaid = (items: SettlementItemRow[]) =>
         items.map((i) =>
-          i.id === itemId ? { ...i, paid: !paid, paid_at: null } : i,
+          i.user_id === userId ? { ...i, paid: !paid, paid_at: null } : i,
         );
       setSavedItems((prev) => revertPaid(prev));
       setDraftItems((prev) => revertPaid(prev));
@@ -840,17 +840,23 @@ export function SettlementPageClient({
                       type="checkbox"
                       checked={item.paid}
                       disabled={
-                        isFinalized ||
-                        isDraftSettlementItemId(item.id) ||
-                        busy
+                        !savedItems.some(
+                          (i) =>
+                            i.user_id === item.user_id &&
+                            isPersistedSettlementItemId(i.id),
+                        ) || busy
                       }
                       title={
-                        isDraftSettlementItemId(item.id)
+                        !savedItems.some(
+                          (i) =>
+                            i.user_id === item.user_id &&
+                            isPersistedSettlementItemId(i.id),
+                        )
                           ? "保存後に支払チェックできます"
                           : undefined
                       }
                       onChange={(e) =>
-                        handlePaidToggle(item.id, e.target.checked)
+                        handlePaidToggle(item.user_id, e.target.checked)
                       }
                     />
                   </td>
@@ -950,7 +956,7 @@ export function SettlementPageClient({
       </div>
 
       <p className="text-[10px] text-txt-muted">
-        実費・パート・請求額の変更はプレビュー表示されます。「変更を保存」で反映されます。支払チェックは即時保存されます。
+        実費・パート・請求額の変更はプレビュー表示されます。「変更を保存」で反映されます。支払チェックは即時保存され、精算確定後も記録できます。
       </p>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
