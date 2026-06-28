@@ -56,6 +56,22 @@ function buildInitialPartActualsForEvent(
   );
 }
 
+function participationsSignature(
+  participations: ParticipationRow[],
+): string {
+  return participations
+    .map((p) => `${p.user_id}:${p.event_part_id}:${p.id}`)
+    .sort()
+    .join("|");
+}
+
+function itemsSignature(items: SettlementItemRow[]): string {
+  return items
+    .map((i) => `${i.id}:${i.user_id}:${i.amount}:${i.paid}`)
+    .sort()
+    .join("|");
+}
+
 export function SettlementPageClient({
   event,
   eventId,
@@ -130,6 +146,15 @@ export function SettlementPageClient({
   const [addUserId, setAddUserId] = useState("");
   const [deadline, setDeadline] = useState("");
 
+  const participationsKey = useMemo(
+    () => participationsSignature(event.participations),
+    [event.participations],
+  );
+  const itemsKey = useMemo(
+    () => itemsSignature(initialItems),
+    [initialItems],
+  );
+
   const isFinalized = settlement.status === "finalized";
   const nicknameByUserId = useMemo(
     () => new Map(allProfiles.map((p) => [p.id, p.nickname])),
@@ -184,6 +209,20 @@ export function SettlementPageClient({
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [isManager, needsSave]);
+
+  useEffect(() => {
+    setSavedParticipations(event.participations);
+    setDraftParticipations(event.participations);
+  }, [event.id, participationsKey]);
+
+  useEffect(() => {
+    setSavedItems(initialItems);
+    setDraftItems(initialItems);
+    const manual = extractManualAmounts(initialItems);
+    setSavedManualAmounts(manual);
+    setManualAmountOverrides(manual);
+    setRemovedSavedItemIds(new Set());
+  }, [event.id, itemsKey]);
 
   const displayItems = useMemo(() => {
     if (!isManager || isFinalized) return savedItems;

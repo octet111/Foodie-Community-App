@@ -352,7 +352,7 @@ export function MePageClient({ profile, data }: MePageClientProps) {
                 {formatOrganizingMeta(event)}
               </p>
             </div>
-            <Link href={`/events/${event.id}/settlement`}>
+            <Link href={`/events/${event.id}/settlement`} prefetch={false}>
               <Button variant="outline" className="shrink-0 py-1.5 text-[10px]">
                 精算へ
               </Button>

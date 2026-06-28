@@ -497,7 +497,7 @@ export function EventDetailClient({
                 isOrganizer || isAdmin ? "border-t border-line/60 pt-2.5" : ""
               }
             >
-              <Link href={`/events/${event.id}/settlement`}>
+              <Link href={`/events/${event.id}/settlement`} prefetch={false}>
                 <Button variant="outline" className="w-full">
                   精算へ
                 </Button>

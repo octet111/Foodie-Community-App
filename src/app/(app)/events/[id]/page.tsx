@@ -4,6 +4,8 @@ import { EventDetailClient } from "@/components/events/EventDetailClient";
 import { getCurrentProfile } from "@/lib/app-data";
 import { getEventById, getMemberProfiles } from "@/lib/events-data";
 
+export const dynamic = "force-dynamic";
+
 type EventDetailPageProps = {
   params: Promise<{ id: string }>;
 };

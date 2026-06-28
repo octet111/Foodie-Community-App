@@ -226,6 +226,17 @@ export async function ensureSettlement(
   };
 }
 
+/** 参加表明にいるが settlement_items にまだいないユーザーがいれば true */
+export function settlementItemsNeedSync(
+  participations: { user_id: string }[],
+  items: { user_id: string }[],
+): boolean {
+  if (participations.length === 0) return false;
+  if (items.length === 0) return true;
+  const itemUserIds = new Set(items.map((i) => i.user_id));
+  return participations.some((p) => !itemUserIds.has(p.user_id));
+}
+
 export async function syncItemsFromParticipations(
   settlement: SettlementRow,
   event: EventDetail,
