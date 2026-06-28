@@ -32,19 +32,24 @@ const inputClass =
 type EventCreateFormProps = {
   profile: AppProfile;
   stocks: StockItem[];
+  publicStocks: StockItem[];
   claimGroups: ShopClaimGroup[];
   initialShop: Shop | null;
 };
 
+type PickerTab = "stocks" | "claims";
+
 export function EventCreateForm({
   profile,
   stocks,
+  publicStocks,
   claimGroups,
   initialShop,
 }: EventCreateFormProps) {
   const router = useRouter();
   const [shop, setShop] = useState<Shop | null>(initialShop);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerTab, setPickerTab] = useState<PickerTab>("stocks");
   const [addShopOpen, setAddShopOpen] = useState(false);
   const [shopUrl, setShopUrl] = useState("");
   const [fetchingShop, setFetchingShop] = useState(false);
@@ -177,14 +182,20 @@ export function EventCreateForm({
         <Button
           variant="outline"
           className="flex-1"
-          onClick={() => setPickerOpen(true)}
+          onClick={() => {
+            setPickerTab("stocks");
+            setPickerOpen(true);
+          }}
         >
           ストックから選ぶ
         </Button>
         <Button
           variant="outline"
           className="flex-1"
-          onClick={() => setPickerOpen(true)}
+          onClick={() => {
+            setPickerTab("claims");
+            setPickerOpen(true);
+          }}
         >
           確保宣言から選ぶ
         </Button>
@@ -285,7 +296,10 @@ export function EventCreateForm({
       <ShopPickerModal
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
+        initialTab={pickerTab}
         stocks={stocks}
+        publicStocks={publicStocks}
+        isAdmin={profile.role === "admin"}
         claimGroups={claimGroups}
         onSelect={setShop}
       />

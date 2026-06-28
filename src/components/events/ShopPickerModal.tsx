@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Shop, ShopClaimGroup, StockItem } from "@/lib/shops-data";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -9,21 +9,38 @@ import { ShopThumb } from "@/components/shops/ShopThumb";
 type ShopPickerModalProps = {
   open: boolean;
   onClose: () => void;
+  initialTab?: Tab;
   stocks: StockItem[];
+  publicStocks: StockItem[];
+  isAdmin?: boolean;
   claimGroups: ShopClaimGroup[];
   onSelect: (shop: Shop) => void;
 };
 
 type Tab = "stocks" | "claims";
+type StockView = "mine" | "public";
 
 export function ShopPickerModal({
   open,
   onClose,
+  initialTab = "stocks",
   stocks,
+  publicStocks,
+  isAdmin = false,
   claimGroups,
   onSelect,
 }: ShopPickerModalProps) {
-  const [tab, setTab] = useState<Tab>("stocks");
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [stockView, setStockView] = useState<StockView>("mine");
+
+  useEffect(() => {
+    if (open) {
+      setTab(initialTab);
+      setStockView("mine");
+    }
+  }, [open, initialTab]);
+
+  const displayedStocks = stockView === "mine" ? stocks : publicStocks;
 
   function handleSelect(shop: Shop) {
     onSelect(shop);
@@ -54,14 +71,39 @@ export function ShopPickerModal({
           </button>
         </div>
 
+        {tab === "stocks" && (
+          <div className="flex rounded-[var(--radius-btn)] border border-line/60 bg-card/50 p-0.5">
+            <button
+              type="button"
+              className={`flex-1 rounded-md py-1 text-[11px] font-bold ${
+                stockView === "mine" ? "bg-card-2 text-txt" : "text-txt-muted"
+              }`}
+              onClick={() => setStockView("mine")}
+            >
+              自分
+            </button>
+            <button
+              type="button"
+              className={`flex-1 rounded-md py-1 text-[11px] font-bold ${
+                stockView === "public" ? "bg-card-2 text-txt" : "text-txt-muted"
+              }`}
+              onClick={() => setStockView("public")}
+            >
+              {isAdmin ? "全員" : "みんな"}
+            </button>
+          </div>
+        )}
+
         <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
           {tab === "stocks" ? (
-            stocks.length === 0 ? (
+            displayedStocks.length === 0 ? (
               <p className="py-4 text-center text-sm text-txt-muted">
-                行きたい店がありません
+                {stockView === "mine"
+                  ? "行きたい店がありません"
+                  : "公開されている行きたい店はまだありません"}
               </p>
             ) : (
-              stocks.map((item) => (
+              displayedStocks.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -69,7 +111,14 @@ export function ShopPickerModal({
                   onClick={() => handleSelect(item.shop)}
                 >
                   <ShopThumb shop={item.shop} className="h-12 w-12 shrink-0" />
-                  <span className="text-sm text-txt">{item.shop.name}</span>
+                  <div className="min-w-0">
+                    <span className="block text-sm text-txt">{item.shop.name}</span>
+                    {stockView === "public" && item.nickname && (
+                      <span className="block text-xs text-txt-muted">
+                        {item.nickname}
+                      </span>
+                    )}
+                  </div>
                 </button>
               ))
             )

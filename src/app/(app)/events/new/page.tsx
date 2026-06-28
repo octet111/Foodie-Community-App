@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { EventCreateForm } from "@/components/events/EventCreateForm";
 import { getCurrentProfile } from "@/lib/app-data";
 import {
+  getAllStocksExcept,
   getClaimGroups,
+  getPublicStocks,
   getShopById,
   getUserStocks,
 } from "@/lib/shops-data";
@@ -17,9 +19,12 @@ export default async function EventNewPage({ searchParams }: EventNewPageProps) 
   if (!profile) redirect("/login");
 
   const { shopId } = await searchParams;
-  const [initialShop, stocks, claimGroups] = await Promise.all([
+  const [initialShop, stocks, publicStocks, claimGroups] = await Promise.all([
     shopId ? getShopById(shopId) : Promise.resolve(null),
     getUserStocks(profile.id),
+    profile.role === "admin"
+      ? getAllStocksExcept(profile.id)
+      : getPublicStocks(profile.id),
     getClaimGroups(),
   ]);
 
@@ -31,6 +36,7 @@ export default async function EventNewPage({ searchParams }: EventNewPageProps) 
       <EventCreateForm
         profile={profile}
         stocks={stocks}
+        publicStocks={publicStocks}
         claimGroups={claimGroups}
         initialShop={initialShop}
       />
