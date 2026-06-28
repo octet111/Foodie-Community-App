@@ -2,6 +2,238 @@
 
 食のコミュニティ向け運営アプリ（Next.js + Supabase）。
 
+## このアプリの目的
+
+招待制の食のコミュニティ（フーディコミュニティ）向けに、**企画・募集・精算・体験共有**を一つのアプリでまとめる運営ツールです。
+
+**解決したいこと**
+
+| 対象 | 便益 |
+|---|---|
+| 幹事・古参層 | 企画作成・募集管理・集金管理の手間を減らし、運営負荷を下げる |
+| 新規・準新規メンバー | 企画を眺めて低ハードルで参加でき、将来的に企画デビューしやすくする |
+
+**設計上の方針**
+
+- **希少な食体験という価値（排他性）は維持**し、参加の偏りだけを解消する
+- 誰でも企画を立てられる権限設計（企画者の固定化を防ぐ）
+- 店の希少性（予約難易度タグ・「確保できます」宣言）を可視化し、コネを活かす
+- 小規模運用を前提（メンバー 20〜50 名・月間企画 2〜5 件・単一コミュニティ）
+
+**中核フロー**
+
+```
+行きたい店ストック / 確保宣言
+  → 企画作成（OGP カード・希少バッジ）
+  → 募集・パート別参加表明・定員自動締切
+  → 自動リマインド（4日前 + 当日）
+  → 開催
+  → 集金管理（パート別割り勘・未払いチェック）
+  →（将来）写真・店情報のアーカイブ化
+```
+
+**企画書の課題との対応（MVP でカバーするもの）**
+
+| 課題 | 解決手段 |
+|---|---|
+| 企画作成・投稿が手間 | 店リンク → OGP カード自動生成（＋ AI 企画ドラフト） |
+| 参加表明・定員管理が手作業 | 参加ボタン＋定員自動締切 |
+| 「いつ・どこ・誰」が分からない | 企画一覧・カレンダー |
+| 企画ストックの保存場所がない | 行きたい店ストックリスト |
+| リマインド・集金連絡が手作業 | 自動リマインド＋集金管理 |
+| 企画者が固定化 | 誰でも投稿可 |
+| 希少性・コネが活きない | 予約難易度タグ＋確保宣言 |
+
+※ 参加者の偏り（課題⑨）は機能化せず、運用ルールで対応。
+
+## 機能概要
+
+| 領域 | 主な機能 |
+|---|---|
+| 認証 | メール＋パスワード（登録・ログイン・ログアウト・パスワードリセット） |
+| 企画 | 作成・編集・一覧・カレンダー・参加表明・コメント・AI ドラフト生成・採用 |
+| 店 | 行きたいリスト・確保宣言・OGP 取得・エリア/予約難易度・編集/削除 |
+| 精算 | パート別割り勘・立替者指定・支払チェック・未払い確認・確定/確定取消 |
+| 通知 | 開催 4 日前＋当日のリマインド（アプリ内通知＋メール） |
+| マイページ | プロフィール（ニックネーム・アバター）・参加予定・未払い・ストック・確保宣言 |
+| 実績 | 開催済み企画の一覧（`/records`） |
+| 管理 | コミュニティ設定・メンバー管理・リマインド/メール設定（admin のみ） |
+
+**主要画面**
+
+| 画面 | パス |
+|---|---|
+| 企画一覧 | `/events` |
+| 企画詳細・参加 | `/events/[id]` |
+| 企画作成・編集 | `/events/new` · `/events/[id]/edit` |
+| AI 企画ドラフト | `/events/drafts` · `/events/drafts/new` · `/events/drafts/[id]` |
+| 精算 | `/events/[id]/settlement` |
+| 店リスト | `/shops` |
+| 店詳細 | `/shops/[id]` |
+| マイページ | `/me` |
+| 実績 | `/records` |
+| 設定（admin） | `/settings` · `/settings/reminders` · `/settings/email-template` |
+
+**ロール**
+
+| ロール | 概要 |
+|---|---|
+| メンバー | 企画閲覧・参加表明・店ストック・自分の支払状況確認 |
+| 企画者（幹事） | 自企画の作成・編集・締切・参加者管理・集金管理 |
+| 立替者 | 企画者から指定。割り勘母集団・金額の最終調整 |
+| 管理者（admin） | コミュニティ設定・メンバー管理・全企画/店の管理操作 |
+
+## 技術スタック
+
+| レイヤ | 技術 | 備考 |
+|---|---|---|
+| フロントエンド | Next.js 16（App Router）+ TypeScript + Tailwind CSS | レスポンシブ（モバイル=下部タブ / PC=サイドナビ） |
+| 認証 | Supabase Auth | メール＋パスワード。email は `auth.users` 管理（非公開） |
+| データベース | Supabase Postgres + RLS | マイグレーション: `supabase/migrations/` |
+| ストレージ | Supabase Storage | 店画像・アバター・ロゴ等 |
+| サーバー処理 | Supabase Edge Functions | OGP 取得（`ogp-fetch`）・リマインド送信（`send-reminders`） |
+| スケジュール | pg_cron | リマインドの定期実行 |
+| メール | Resend | Edge Functions から送信 |
+| AI | Google Gemini | 企画ドラフト生成（`gemini-3.5-flash`） |
+| ホスティング | Vercel | — |
+| テスト | Playwright（E2E）+ Vitest（ユニット） | — |
+| 運用 | GitHub Actions | Keepalive（3日おき）・週次 DB バックアップ |
+
+**ディレクトリ構成（概要）**
+
+| パス | 内容 |
+|---|---|
+| `src/app` | App Router のページ |
+| `src/components` | UI コンポーネント |
+| `src/lib` | Supabase クライアント・ビジネスロジック等 |
+| `src/types` | `supabase gen types` で生成する DB 型 |
+| `supabase/` | マイグレーション・Edge Functions |
+| `e2e/` | Playwright E2E テスト |
+
+## 各機能の説明
+
+#### 認証
+- メール＋パスワードで登録・ログイン・ログアウト・パスワードリセット
+- 未ログインでは企画・店の閲覧・操作不可
+- 表示名はニックネームのみ。メールアドレスは認証専用で他メンバーからは見えない
+
+#### 企画
+- **作成:** 店リンクから OGP（店名・画像・説明）を自動取得。失敗時は手動入力で継続
+- **設定:** 開催日時（10 分刻み）、場所、定員、概要、参加パート（一次会・二次会…）を設定
+- **募集:** パートごとに参加表明。定員到達で自動締切。締切後の取消は企画者・admin が手動対応
+- **一覧:** `/events` でリスト・カレンダー表示。参加者ニックネームも可視化
+- **詳細:** コメント投稿、参加者管理、立替者指定、精算への導線
+- **AI 生成:** Gemini でコンセプト 3 案 → 1 案選択 → 集客文生成 → 編集・日時入力 → 採用（`/events/drafts`）
+
+#### 店リスト
+- **行きたいリスト:** メンバーが「行きたい店」をストック。メモ付き。公開/非公開設定可
+- **確保宣言:** 「この店、確保できます」を宣言。コネ種別（常連・紹介ルート等）と条件メモ
+- **希少性:** 予約難易度タグ（ふらっと入れる / 予約可 / 紹介制 / 数ヶ月待ち / 会員制）を店に付与
+- **企画への導線:** ストック・確保宣言からワンタップで企画作成画面へ
+- **編集・削除:** 投稿者はエリア・予約難易度を編集。行きたいリストから削除（有効企画がある店は店データは残る）
+
+#### 精算
+- パートごとに `ceil(実費 ÷ 参加者数)` で割り勘（円単位切り上げ）
+- 企画者・立替者が母集団・請求額を最終調整。確定後は DB ロック（確定取消で再編集可）
+- 参加者は自分の請求額・支払状況を確認。マイページで未払い一覧も表示
+- 送金機能なし — 振込先情報の表示と支払チェック管理のみ
+
+#### リマインド
+- 企画公開時に開催 **4 日前** と **当日** の 2 回分を自動生成
+- pg_cron → Edge Function でアプリ内通知＋メール送信
+- 送信時刻・メール件名/本文は admin が設定画面で変更可
+
+#### マイページ（`/me`）
+- ニックネーム・アバター編集
+- 企画中（精算へ）、参加予定、未払い、ストック・確保宣言、ログアウト
+
+#### 実績（`/records`）
+- 開催済み企画の一覧。精算確定と連動
+
+#### 通知ベル
+- `notifications` テーブルの実データを表示。企画リンク付き
+
+## 管理者（admin）機能
+
+`profiles.role = 'admin'` のメンバーに付与。設定画面（`/settings`）は admin のみアクセス可（一般ユーザーは `/me` へリダイレクト）。
+
+| 機能 | パス | 内容 |
+|---|---|---|
+| コミュニティ設定 | `/settings` | コミュニティ名・ロゴ・振込先情報の編集 |
+| メンバー管理 | `/settings` | メンバー一覧表示、admin 権限の付与/剥奪 |
+| リマインド設定 | `/settings/reminders` | 4 日前・当日のデフォルト送信時刻 |
+| メールテンプレート | `/settings/email-template` | リマインドメールの件名・本文 |
+| 企画管理 | `/events/[id]` 等 | 全企画の編集・削除、参加者の手動追加/削除、締切の取り消し |
+| 店管理 | `/shops` | 全ストックの閲覧・任意投稿の削除（「削除（管理者）」） |
+| 精算 | `/events/[id]/settlement` | 全企画の精算画面へアクセス、確定/確定取消 |
+
+**一般メンバーとの権限差（主なもの）**
+
+| 操作 | メンバー | admin |
+|---|---|---|
+| コミュニティ設定の変更 | ✕ | ○ |
+| admin 権限の付与/剥奪 | ✕ | ○ |
+| 他人の企画の編集・削除 | ✕ | ○ |
+| 締切後の参加者追加/削除 | ✕ | ○ |
+| 他人の店ストック削除 | ✕ | ○ |
+| 不適切コメントの削除 | 自分の投稿のみ | 任意の投稿 |
+
+初期 admin は Supabase ダッシュボードで `profiles.role` を手動更新して設定（詳細は本文「初期管理者の設定」参照）。
+
+## スキーマの概要構造
+
+Supabase Postgres。認証は `auth.users`、アプリ側プロフィールは `public.profiles`（1:1）。RLS で権限を DB 層でも強制。
+
+```
+auth.users ──1:1── profiles
+                        │
+    ┌───────────────────┼───────────────────┐
+    │                   │                   │
+  shops ◄── stocks    events ◄── comments   secure_claims
+    │                   │
+    │              event_parts
+    │                   │
+    │              participations
+    │                   │
+    └──────────► settlements ── settlement_items
+                        │
+                   reminders / notifications
+
+community_settings（単一レコード）
+event_drafts ── draft_shop_candidates（AI 企画ドラフト）
+photos（フェーズ2・アルバム）
+```
+
+**主要テーブル**
+
+| テーブル | 役割 |
+|---|---|
+| `profiles` | メンバー（nickname, role, avatar_path） |
+| `community_settings` | コミュニティ名・ロゴ・振込先・リマインド設定 |
+| `shops` | 店マスタ（OGP・エリア・予約難易度） |
+| `stocks` | 行きたい店ストック（memo, is_private） |
+| `secure_claims` | 確保宣言（コネ種別・条件メモ） |
+| `events` | 企画（status: open / closed / held / archived） |
+| `event_parts` | 参加パート（定員・想定費用） |
+| `participations` | パート別参加表明 |
+| `settlements` | 精算（1 企画 1 精算、立替者、パート別実費） |
+| `settlement_items` | 参加者ごとの請求額・支払状況 |
+| `reminders` | リマインド送信スケジュール |
+| `notifications` | アプリ内通知 |
+| `comments` | 企画コメント |
+| `event_drafts` | AI 生成企画ドラフト |
+| `draft_shop_candidates` | ドラフトの候補店 |
+| `photos` | アルバム写真（フェーズ2） |
+
+**設計上の要点**
+
+- `profiles` に email を持たず、`auth.users` 側で非公開を担保
+- `settlements.event_id` に unique 制約（1 企画 1 精算）
+- `events.deleted_at` で論理削除（参加・精算データは保持）
+- 精算確定後は `settlement_items` を DB トリガでロック
+
+詳細 DDL: `Requirements-docs_and_Design/schema.sql`、マイグレーション: `supabase/migrations/`。
+
 ## 実装進捗
 
 | フェーズ | 内容 | 状態 |
@@ -18,7 +250,7 @@
 | 14 | 店リスト編集・削除（エリア/予約難易度・管理者全件削除） | ✅ 2026-06-28 |
 | 15 | AI企画自動生成（ドラフト → 採用） | ✅ 2026-06-28 |
 
-詳細は `Requirements-docs_and_Design/cursor_implementation_plan_v1.0.md` を参照。`implementation_spec.md` §8–§16（フェーズ6–14）。
+詳細は `Requirements-docs_and_Design/cursor_implementation_plan_v1.0.md` を参照。`implementation_spec.md` §8–§17（フェーズ6–15）。
 
 ## ディレクトリ構成
 
@@ -37,25 +269,31 @@ Supabase プロジェクト「Foodie-Community-App」（東京リージョン）
 
 ### AI企画生成（Gemini）
 
-サーバー専用の環境変数 `GEMINI_API_KEY` が必要です（クライアントには露出しません）。
+2段階でコンセプト → 集客文を生成し、編集・日時入力後に `events` へ採用する。生成物は `event_drafts` に隔離（既存 `events` ロジックは採用時のみ）。
 
-**ローカル** — `.env.local` に追加:
+**フロー:** 条件入力 → コンセプト3案 → 1案選択 → 集客文生成 → 編集 → 日時入力 → 採用
+
+**候補店の指定（いずれか／併用可）:**
+- 店リストから選択（最大20件）
+- 店リンク URL（OGP 取得 → `shops` 登録/再利用）
+- 起点: ストック / 確保宣言 / フリー検索
+
+**制約:** 店は DB 候補の `shop_id` のみ。`held_at` はユーザー入力。Gemini 呼び出しはサーバー専用（`src/lib/gemini.ts`）。
+
+**主要パス:** `/events/drafts/new` · API `/api/drafts/*` · migration `20250628130000_event_drafts.sql`
+
+**環境変数** `GEMINI_API_KEY`（クライアント非公開）:
 
 ```bash
+# .env.local
 GEMINI_API_KEY=your-google-ai-api-key
 ```
 
-**Vercel** — Project → Settings → Environment Variables:
+Vercel でも同名を Production 等に設定し、**追加・変更後は再デploy 必須**。キー取得: [Google AI Studio](https://aistudio.google.com/apikey)
 
-| 名前 | 値 | 環境 |
-|---|---|---|
-| `GEMINI_API_KEY` | Google AI Studio で発行した API キー | Production / Preview / Development |
+マイグレーション適用後: `npm run gen:types`
 
-キー取得: [Google AI Studio](https://aistudio.google.com/apikey)
-
-マイグレーション `20250628130000_event_drafts.sql` 適用後、`npm run gen:types` で型を再生成してください。
-
-UI: 企画一覧 `/events` の「✦ AIで企画を生成」、または `/events/drafts` から利用。
+E2E: `e2e/drafts.spec.ts`
 
 
 ### Supabase Auth の URL 設定（これだけ設定すればOK）
@@ -317,13 +555,23 @@ npx playwright test me auth  # フェーズ8 重点
 | DB | `20250628120000_shops_delete_creator.sql` |
 | E2E | `shops.spec.ts` — 編集・削除フロー |
 
+### フェーズ15 AI企画自動生成（2026-06-28）
+
+| 区分 | 内容 |
+|---|---|
+| UI | `/events/drafts` 一覧 · `/events/drafts/new` 生成 · `/events/drafts/[id]` 選択/編集/採用 |
+| 候補店 | 店リスト複数選択 · URL（OGP） · ストック/コネ/フリー |
+| API | `POST generate-concepts` · `POST generate-detail` · `PATCH` · `POST adopt` · `DELETE` |
+| DB | `event_drafts`, `draft_shop_candidates`, RPC `adopt_event_draft` |
+| LLM | `gemini-3.5-flash` · 1日20回/ユーザー · `GEMINI_API_KEY` |
+
 ### マイグレーション（未適用の場合）
 
 ```bash
 npx supabase db push
 ```
 
-未適用の例: `20250624000001` / **`20250625000001`** / `20250626000001`〜`03` / `20250628000001` / `20260628110036`
+未適用の例: `20250624000001` / **`20250625000001`** / `20250626000001`〜`03` / `20250628000001` / **`20250628130000`** / `20260628110036`
 
 ### マイグレーション履歴が食い違う場合
 

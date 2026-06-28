@@ -591,3 +591,48 @@
 | 種別 | 内容 |
 |---|---|
 | E2E | `shops.spec.ts` — エリア・予約難易度の編集、行きたいリストからの削除 |
+
+---
+
+## 17. フェーズ15 AI企画自動生成（2026-06-28）
+
+### 17.1 概要
+
+Gemini で企画ドラフトを2段階生成し、ユーザー編集・日時入力後に `events` + `event_parts` へ採用。既存テーブルは変更せず `event_drafts` / `draft_shop_candidates` に隔離。
+
+### 17.2 フロー
+
+| 段階 | 操作 | Gemini |
+|---|---|---|
+| 1 | 候補指定 → コンセプト3案 | 呼ぶ |
+| 2 | 1案選択 | 呼ばない |
+| 3 | 集客文・パート生成 | 呼ぶ |
+| 4 | 編集 → 日時 → 採用 | 呼ばない（RPC `adopt_event_draft`） |
+
+### 17.3 候補店
+
+| 手段 | 実装 |
+|---|---|
+| 店リスト選択 | `selected_shop_ids` · `DraftShopPickerModal` · `collectShopsByIds` |
+| URL | `shop_url` · `ogp-fetch` · `resolveShopFromUrl` |
+| ストック/コネ/フリー | `origins[]` · `collectShopCandidates` |
+
+候補外 `shop_id` はプロンプト指示 + サーバー検証で拒否。`held_at` は AI 生成しない。
+
+### 17.4 主要ファイル
+
+| 種別 | パス |
+|---|---|
+| UI | `src/components/drafts/*` · `src/app/(app)/events/drafts/**` |
+| API | `src/app/api/drafts/**` |
+| サーバー | `src/lib/gemini.ts` · `src/lib/draft/*` |
+| DB | `supabase/migrations/20250628130000_event_drafts.sql` |
+| E2E | `e2e/drafts.spec.ts` |
+
+### 17.5 環境変数
+
+| 変数 | 用途 |
+|---|---|
+| `GEMINI_API_KEY` | サーバー専用（Vercel 設定後は再デプロイ必須） |
+
+モデル: `gemini-3.5-flash`（`src/lib/draft/constants.ts`）。生成上限: 20回/ユーザー/日。
