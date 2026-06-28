@@ -15,8 +15,10 @@
 | 11 | 機能ブラッシュアップ #3（参加者管理・立替者・S05 UI・締切戻し） | ✅ 2026-06-21 |
 | 12 | 機能ブラッシュアップ #4（店UI・行きたいメモ・アイコン・マイページUI） | ✅ 2026-06-21 |
 | 13 | 追補（店公開/精算/実績/未払い） | ✅ 2026-06-24〜28 |
+| 14 | 店リスト編集・削除（エリア/予約難易度・管理者全件削除） | ✅ 2026-06-28 |
+| 15 | AI企画自動生成（ドラフト → 採用） | ✅ 2026-06-28 |
 
-詳細は `Requirements-docs_and_Design/cursor_implementation_plan_v1.0.md` を参照。`implementation_spec.md` §8–§15（フェーズ6–13）。
+詳細は `Requirements-docs_and_Design/cursor_implementation_plan_v1.0.md` を参照。`implementation_spec.md` §8–§16（フェーズ6–14）。
 
 ## ディレクトリ構成
 
@@ -32,6 +34,29 @@ npm run dev
 ```
 
 Supabase プロジェクト「Foodie-Community-App」（東京リージョン）のダッシュボード → Settings → API から `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` を取得してください。
+
+### AI企画生成（Gemini）
+
+サーバー専用の環境変数 `GEMINI_API_KEY` が必要です（クライアントには露出しません）。
+
+**ローカル** — `.env.local` に追加:
+
+```bash
+GEMINI_API_KEY=your-google-ai-api-key
+```
+
+**Vercel** — Project → Settings → Environment Variables:
+
+| 名前 | 値 | 環境 |
+|---|---|---|
+| `GEMINI_API_KEY` | Google AI Studio で発行した API キー | Production / Preview / Development |
+
+キー取得: [Google AI Studio](https://aistudio.google.com/apikey)
+
+マイグレーション `20250628130000_event_drafts.sql` 適用後、`npm run gen:types` で型を再生成してください。
+
+UI: 企画一覧 `/events` の「✦ AIで企画を生成」、または `/events/drafts` から利用。
+
 
 ### Supabase Auth の URL 設定（これだけ設定すればOK）
 
@@ -201,7 +226,7 @@ WHERE id = (
 ### ナビ
 
 - 企画 / 店 / マイページ / **設定**（admin のみ）。アイコン付き
-- 企画作成は企画一覧 `/events` 内「＋ 企画を作成」ボタン
+- 企画作成は企画一覧 `/events` 内「＋ 企画を作成」ボタン、または「✦ AIで企画を生成」
 
 ### 設定 `/settings`（admin のみ）
 
@@ -276,10 +301,21 @@ npx playwright test me auth  # フェーズ8 重点
 
 | 区分 | 内容 |
 |---|---|
-| 店 S07 | タブ「行きたい／確保できる」。行きたい内に「自分／みんな」。`stocks.is_private` で公開/非公開。企画済み店は「企画済み」バッジ |
+| 店 S07 | タブ「行きたい／確保できる」。行きたい内に「自分／みんな」（admin は「全員」）。`stocks.is_private` で公開/非公開。企画済み店は「企画済み」バッジ |
 | 精算 S09 | 確定後も支払チェック可（`20250626000003`）。参加者追加時に明細を再同期（`settlementItemsNeedSync`） |
 | 実績 `/records` | `events.status = held` で一覧（settlements 結合を廃止）。DB トリガで確定/取消と status 同期（`20250628000001`） |
 | マイページ未払い | 一般ユーザー向け RPC `get_my_unpaid_items`（`20260628110036`）。`settlements` RLS 回避 |
+
+### フェーズ14 店リスト編集・削除（2026-06-28）
+
+| 区分 | 内容 |
+|---|---|
+| 店情報編集 | 投稿者は S07「自分」一覧・S08 で **エリア**・**予約難易度**を編集（`ShopEditModal`） |
+| 削除（一般） | 行きたいリスト（`stocks`）から削除。投稿者かつ有効企画なしなら `shops` も削除 |
+| 削除（admin） | 「全員」タブで非公開投稿を含む全ストックを表示。「削除（管理者）」で任意の投稿を削除 |
+| 実装 | `shop-actions.ts`, `getAllStocksExcept()`, `ShopEditModal`, `ShopStockCard` |
+| DB | `20250628120000_shops_delete_creator.sql` |
+| E2E | `shops.spec.ts` — 編集・削除フロー |
 
 ### マイグレーション（未適用の場合）
 

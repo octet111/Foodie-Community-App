@@ -61,15 +61,15 @@ create policy "cs_update_admin" on public.community_settings for update to authe
   using (public.is_admin()) with check (public.is_admin());
 
 -- ============================================================
--- shops: 全員R・C / 登録者or管理者U / 管理者D
+-- shops: 全員R・C / 登録者or管理者U / 登録者or管理者D
 -- ============================================================
 create policy "shops_select_all" on public.shops for select to authenticated using (true);
 create policy "shops_insert_any" on public.shops for insert to authenticated
   with check (created_by = auth.uid());
 create policy "shops_update_creator_admin" on public.shops for update to authenticated
   using (created_by = auth.uid() or public.is_admin());
-create policy "shops_delete_admin" on public.shops for delete to authenticated
-  using (public.is_admin());
+create policy "shops_delete_creator_admin" on public.shops for delete to authenticated
+  using (created_by = auth.uid() or public.is_admin());
 
 -- ============================================================
 -- stocks: 本人のみCRUD / 管理者全件

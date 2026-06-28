@@ -349,8 +349,11 @@
 |---|---|
 | 店追加ボタン | S07 上部に primary 全幅「＋ 店を追加（URL貼付）」（S04 企画作成ボタンと同配置） |
 | 行きたいメモ | `stocks.memo`。入力は **店追加モーダル** と **S08 店詳細**（自分がストック済みの店のみ） |
-| 店リスト表示 | メモはテキスト表示のみ（一覧に編集ボタンは置かない） |
-| 実装 | `ShopAddModal`, `ShopDetailClient`, `getUserStockForShop`, `ShopStockCard` |
+| 店情報編集 | 投稿者（`shops.created_by`）は **エリア**・**予約難易度**（`area`, `rarity`）を S07「自分」一覧または S08 で編集 |
+| 削除 | 自分のストック（`stocks`）を削除。投稿者かつ有効企画なしなら `shops` も削除 |
+| 管理者削除 | admin は「全員」タブで他ユーザーの非公開投稿を含む全ストックを表示し、任意の投稿を削除可能 |
+| 店リスト表示 | メモ・エリアはテキスト表示。編集/削除ボタンは「自分」タブ（admin は「全員」タブにも削除） |
+| 実装 | `ShopAddModal`, `ShopEditModal`, `ShopDetailClient`, `shop-actions.ts`, `getUserStockForShop`, `ShopStockCard`, `getAllStocksExcept` |
 
 ### 12.3 実績リストの判定
 
@@ -483,8 +486,8 @@
 |---|---|
 | 店追加モーダル | 「行きたい理由（任意）」テキストエリア。保存時に `stocks.memo` へ |
 | S08 店詳細 | ストック済み店のみ「行きたいメモ」セクションで編集・保存 |
-| S07 / マイページ | テキスト表示のみ（一覧に編集 UI なし） |
-| 実装 | `ShopAddModal`, `ShopDetailClient`, `getUserStockForShop`, `ShopStockCard` |
+| S07 / マイページ | メモ・エリアはテキスト表示。S07「自分」タブでは投稿店のエリア/予約難易度編集・削除可 |
+| 実装 | `ShopAddModal`, `ShopEditModal`, `ShopDetailClient`, `shop-actions.ts`, `getUserStockForShop`, `ShopStockCard` |
 
 ### 14.3 プロフィールアイコン
 
@@ -521,10 +524,10 @@
 | 項目 | 内容 |
 |---|---|
 | DB | `stocks.is_private`（default false）— `20250626000001`, `20250626000002` |
-| UI | タブ「行きたい／確保できる」。行きたい内「自分／みんな」切替 |
+| UI | タブ「行きたい／確保できる」。行きたい内「自分／みんな」切替（admin は「全員」） |
 | 公開 | `is_private=false` のストックを他ユーザー一覧に表示（投稿者ニックネーム付き） |
 | 企画済み | 募集中/締切企画がある店は「企画済み」バッジ＋控えめ表示 |
-| 実装 | `ShopsPageClient`, `ShopStockCard`, `ShopAddModal`, `ShopDetailClient`, `getPublicStocks` |
+| 実装 | `ShopsPageClient`, `ShopStockCard`, `ShopAddModal`, `ShopDetailClient`, `getPublicStocks`, `getAllStocksExcept` |
 
 ### 15.2 精算（S09）— 確定後支払・明細同期
 
@@ -550,3 +553,41 @@
 | 問題 | `settlement_items` → `settlements` 結合が RLS で一般ユーザーに遮断され未払いが常に空 |
 | 対応 | RPC `get_my_unpaid_items()`（security definer）— `20260628110036` |
 | 実装 | `getUnpaidItems()` in `me-data.ts` |
+
+---
+
+## 16. フェーズ14 店リスト編集・削除（2026-06-28）
+
+### 16.1 投稿店の編集・削除（一般ユーザー）
+
+| 項目 | 内容 |
+|---|---|
+| 編集対象 | `shops.area`, `shops.rarity`（`created_by` が自分の店のみ） |
+| S07 一覧 | 「自分」タブで投稿店に「編集」「削除」リンク |
+| S08 詳細 | 「エリア・予約難易度を編集」→ `ShopEditModal`。ストック済み店に「行きたいリストから削除」 |
+| 削除フロー | ① `stocks` 削除 → ② 投稿者かつ `events.deleted_at is null` の企画がなければ `shops` 削除 |
+| 企画あり | ストックのみ削除。店データは残る |
+| 実装 | `ShopEditModal.tsx`, `shop-actions.ts`, `ShopStockCard.tsx`, `ShopDetailClient.tsx` |
+
+### 16.2 管理者による全投稿削除
+
+| 項目 | 内容 |
+|---|---|
+| タブ表示 | admin の「みんな」相当タブは **「全員」** と表示 |
+| 一覧 | 他ユーザーの **非公開**（`is_private=true`）ストックも含めて表示。投稿者ニックネーム・公開/非公開を表示 |
+| 削除 UI | 各カードに「削除（管理者）」。確認ダイアログ「管理者として〜を削除しますか？」 |
+| 削除フロー | 対象ユーザーの `stocks` 削除 → 有効企画なしなら `shops` も削除（投稿者不問） |
+| データ取得 | admin 時 `getAllStocksExcept()`。一般ユーザーは従来どおり `getPublicStocks()` |
+| RLS | `stocks` は admin 全件 CRUD 済み。`shops` DELETE を登録者にも拡張（migration `20250628120000`） |
+
+### 16.3 DB
+
+| migration | 内容 |
+|---|---|
+| `20250628120000_shops_delete_creator.sql` | `shops_delete_admin` → `shops_delete_creator_admin`（`created_by = auth.uid() or is_admin()`） |
+
+### 16.4 テスト
+
+| 種別 | 内容 |
+|---|---|
+| E2E | `shops.spec.ts` — エリア・予約難易度の編集、行きたいリストからの削除 |

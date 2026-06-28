@@ -273,7 +273,7 @@ export function EventDetailClient({
 
     const { data, error: rpcError } = await supabase.rpc("set_event_finalizer", {
       p_event_id: event.id,
-      p_finalizer_id: finalizerDraft || null,
+      p_finalizer_id: finalizerDraft || (null as unknown as string),
     });
 
     if (rpcError || !data) {

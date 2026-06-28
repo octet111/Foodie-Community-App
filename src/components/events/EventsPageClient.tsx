@@ -67,6 +67,11 @@ export function EventsPageClient({ events }: EventsPageClientProps) {
       <Link href="/events/new">
         <Button className="w-full">＋ 企画を作成</Button>
       </Link>
+      <Link href="/events/drafts/new">
+        <Button variant="outline" className="w-full">
+          ✦ AIで企画を生成
+        </Button>
+      </Link>
 
       <div className="flex rounded-[var(--radius-btn)] border border-line bg-card p-0.5">
         <button
