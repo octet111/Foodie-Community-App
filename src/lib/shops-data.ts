@@ -112,6 +112,33 @@ export async function getPublicStocks(excludeUserId: string): Promise<StockItem[
     });
 }
 
+export async function getAllStocksExcept(excludeUserId: string): Promise<StockItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("stocks")
+    .select(
+      "id, memo, is_private, user_id, shop:shops(*), profile:profiles(nickname)",
+    )
+    .neq("user_id", excludeUserId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data
+    .filter((row) => row.shop)
+    .map((row) => {
+      const profile = row.profile as { nickname: string } | null;
+      return {
+        id: row.id,
+        memo: row.memo,
+        is_private: row.is_private,
+        user_id: row.user_id,
+        nickname: profile?.nickname,
+        shop: row.shop as Shop,
+      };
+    });
+}
+
 export async function getClaimGroups(): Promise<ShopClaimGroup[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

@@ -14,6 +14,7 @@ import { ShopThumb } from "@/components/shops/ShopThumb";
 type ShopStockCardProps = {
   item: StockItem;
   userId?: string;
+  isAdmin?: boolean;
   showOwner?: boolean;
   showPrivacy?: boolean;
   showActions?: boolean;
@@ -22,6 +23,7 @@ type ShopStockCardProps = {
 export function ShopStockCard({
   item,
   userId,
+  isAdmin = false,
   showOwner = false,
   showPrivacy = false,
   showActions = false,
@@ -29,20 +31,31 @@ export function ShopStockCard({
   const router = useRouter();
   const { shop } = item;
   const isPlanned = item.has_event === true;
-  const isCreator = showActions && userId === shop.created_by;
+  const isOwnStock = userId === item.user_id;
+  const isCreator = userId === shop.created_by;
+  const canEdit = showActions && isCreator;
+  const canDelete = showActions && userId && (isOwnStock || isAdmin);
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleDelete() {
-    if (!userId) return;
-    if (!window.confirm(`「${shop.name}」を行きたいリストから削除しますか？`)) return;
+    if (!userId || !canDelete) return;
+
+    const confirmMessage =
+      isAdmin && !isOwnStock
+        ? `管理者として「${shop.name}」の投稿を削除しますか？`
+        : `「${shop.name}」を行きたいリストから削除しますか？`;
+    if (!window.confirm(confirmMessage)) return;
 
     setDeleting(true);
     setDeleteError(null);
 
     const supabase = createClient();
-    const { error: stockError } = await deleteUserStock(supabase, item.id, userId);
+    const { error: stockError } = await deleteUserStock(supabase, item.id, {
+      ownerId: item.user_id,
+      asAdmin: isAdmin && !isOwnStock,
+    });
 
     if (stockError) {
       setDeleteError(stockError);
@@ -50,12 +63,11 @@ export function ShopStockCard({
       return;
     }
 
-    if (isCreator) {
-      const { error: shopError } = await deleteShopIfAllowed(
-        supabase,
-        shop.id,
-        userId,
-      );
+    if (isCreator || isAdmin) {
+      const { error: shopError } = await deleteShopIfAllowed(supabase, shop.id, {
+        creatorId: shop.created_by,
+        asAdmin: isAdmin,
+      });
       if (shopError) {
         setDeleteError(shopError);
         setDeleting(false);
@@ -126,9 +138,9 @@ export function ShopStockCard({
               {deleteError}
             </p>
           )}
-          {showActions && userId && (
+          {(canEdit || canDelete) && (
             <div className="mt-2 flex gap-3">
-              {isCreator && (
+              {canEdit && (
                 <button
                   type="button"
                   className="text-[11px] text-brass"
@@ -137,20 +149,22 @@ export function ShopStockCard({
                   編集
                 </button>
               )}
-              <button
-                type="button"
-                className="text-[11px] text-shu disabled:opacity-50"
-                disabled={deleting}
-                onClick={handleDelete}
-              >
-                {deleting ? "削除中…" : "削除"}
-              </button>
+              {canDelete && (
+                <button
+                  type="button"
+                  className="text-[11px] text-shu disabled:opacity-50"
+                  disabled={deleting}
+                  onClick={handleDelete}
+                >
+                  {deleting ? "削除中…" : isAdmin && !isOwnStock ? "削除（管理者）" : "削除"}
+                </button>
+              )}
             </div>
           )}
         </div>
       </Card>
 
-      {isCreator && userId && (
+      {canEdit && userId && (
         <ShopEditModal
           open={editOpen}
           onClose={() => setEditOpen(false)}

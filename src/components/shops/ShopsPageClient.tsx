@@ -28,6 +28,7 @@ export function ShopsPageClient({
   const [stockView, setStockView] = useState<StockView>("mine");
   const [addOpen, setAddOpen] = useState(false);
 
+  const isAdmin = profile.role === "admin";
   const displayedStocks = stockView === "mine" ? stocks : publicStocks;
 
   return (
@@ -76,7 +77,7 @@ export function ShopsPageClient({
               }`}
               onClick={() => setStockView("public")}
             >
-              みんな
+              {isAdmin ? "全員" : "みんな"}
             </button>
           </div>
         )}
@@ -95,9 +96,10 @@ export function ShopsPageClient({
                   key={item.id}
                   item={item}
                   userId={profile.id}
+                  isAdmin={isAdmin}
                   showOwner={stockView === "public"}
-                  showPrivacy={stockView === "mine"}
-                  showActions={stockView === "mine"}
+                  showPrivacy={stockView === "mine" || (isAdmin && stockView === "public")}
+                  showActions={stockView === "mine" || isAdmin}
                 />
               ))
             )

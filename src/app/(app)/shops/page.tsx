@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { ShopsPageClient } from "@/components/shops/ShopsPageClient";
 import { getCurrentProfile } from "@/lib/app-data";
-import { getClaimGroups, getPublicStocks, getShopIdsWithEvents, getUserStocks, markPlannedStocks } from "@/lib/shops-data";
+import { getClaimGroups, getAllStocksExcept, getPublicStocks, getShopIdsWithEvents, getUserStocks, markPlannedStocks } from "@/lib/shops-data";
 
 export const metadata = {
   title: "店リスト",
@@ -14,7 +14,9 @@ export default async function ShopsPage() {
 
   const [stocks, publicStocks, claimGroups, plannedShopIds] = await Promise.all([
     getUserStocks(profile.id),
-    getPublicStocks(profile.id),
+    profile.role === "admin"
+      ? getAllStocksExcept(profile.id)
+      : getPublicStocks(profile.id),
     getClaimGroups(),
     getShopIdsWithEvents(),
   ]);

@@ -43,6 +43,7 @@ export function ShopDetailClient({
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const isAdmin = profile.role === "admin";
   const isCreator = shop.created_by === profile.id;
   const serverMemo = userStock?.memo ?? "";
   const serverIsPrivate = userStock?.is_private ?? false;
@@ -113,11 +114,9 @@ export function ShopDetailClient({
     setDeleteError(null);
 
     const supabase = createClient();
-    const { error: stockError } = await deleteUserStock(
-      supabase,
-      userStock.id,
-      profile.id,
-    );
+    const { error: stockError } = await deleteUserStock(supabase, userStock.id, {
+      ownerId: profile.id,
+    });
 
     if (stockError) {
       setDeleteError(stockError);
@@ -125,12 +124,11 @@ export function ShopDetailClient({
       return;
     }
 
-    if (isCreator) {
-      const { error: shopError } = await deleteShopIfAllowed(
-        supabase,
-        shop.id,
-        profile.id,
-      );
+    if (isCreator || isAdmin) {
+      const { error: shopError } = await deleteShopIfAllowed(supabase, shop.id, {
+        creatorId: shop.created_by,
+        asAdmin: isAdmin,
+      });
       if (shopError) {
         setDeleteError(shopError);
         setDeleting(false);
