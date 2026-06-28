@@ -13,7 +13,9 @@ import { ConnChip } from "@/components/ui/ConnChip";
 import { RarityBadge } from "@/components/ui/RarityBadge";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { SecureClaimModal } from "@/components/shops/SecureClaimModal";
+import { ShopEditModal } from "@/components/shops/ShopEditModal";
 import { ShopThumb } from "@/components/shops/ShopThumb";
+import { deleteShopIfAllowed, deleteUserStock } from "@/lib/shop-actions";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type ShopDetailClientProps = {
@@ -38,6 +40,10 @@ export function ShopDetailClient({
 }: ShopDetailClientProps) {
   const router = useRouter();
   const [claimOpen, setClaimOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const isCreator = shop.created_by === profile.id;
   const serverMemo = userStock?.memo ?? "";
   const serverIsPrivate = userStock?.is_private ?? false;
   const [memoDraft, setMemoDraft] = useState(serverMemo);
@@ -99,6 +105,44 @@ export function ShopDetailClient({
 
   const memoDirty = memoDraft.trim() !== serverMemo.trim();
 
+  async function handleDeleteStock() {
+    if (!userStock) return;
+    if (!window.confirm(`「${shop.name}」を行きたいリストから削除しますか？`)) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    const supabase = createClient();
+    const { error: stockError } = await deleteUserStock(
+      supabase,
+      userStock.id,
+      profile.id,
+    );
+
+    if (stockError) {
+      setDeleteError(stockError);
+      setDeleting(false);
+      return;
+    }
+
+    if (isCreator) {
+      const { error: shopError } = await deleteShopIfAllowed(
+        supabase,
+        shop.id,
+        profile.id,
+      );
+      if (shopError) {
+        setDeleteError(shopError);
+        setDeleting(false);
+        return;
+      }
+    }
+
+    setDeleting(false);
+    router.push("/shops");
+    router.refresh();
+  }
+
   return (
     <>
       <Card className="flex flex-col gap-3">
@@ -124,6 +168,17 @@ export function ShopDetailClient({
           >
             店のリンクを開く
           </a>
+        )}
+        {isCreator && (
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              className="text-xs text-brass"
+              onClick={() => setEditOpen(true)}
+            >
+              エリア・予約難易度を編集
+            </button>
+          </div>
         )}
       </Card>
 
@@ -178,6 +233,26 @@ export function ShopDetailClient({
                 {privacyError}
               </p>
             )}
+          </Card>
+
+          <SectionTitle>行きたいリスト</SectionTitle>
+          <Card className="flex flex-col gap-2">
+            <p className="text-[11px] text-txt-muted">
+              行きたいリストから削除すると、この店はあなたのリストに表示されなくなります。
+            </p>
+            {deleteError && (
+              <p className="text-xs text-shu" role="alert">
+                {deleteError}
+              </p>
+            )}
+            <Button
+              variant="danger"
+              className="self-start py-1.5 text-[11px]"
+              disabled={deleting}
+              onClick={handleDeleteStock}
+            >
+              {deleting ? "削除中…" : "行きたいリストから削除"}
+            </Button>
           </Card>
         </>
       )}
@@ -270,6 +345,15 @@ export function ShopDetailClient({
         userId={profile.id}
         existingClaim={userClaim}
       />
+
+      {isCreator && (
+        <ShopEditModal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          shop={shop}
+          userId={profile.id}
+        />
+      )}
     </>
   );
 }

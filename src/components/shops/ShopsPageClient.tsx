@@ -94,8 +94,10 @@ export function ShopsPageClient({
                 <ShopStockCard
                   key={item.id}
                   item={item}
+                  userId={profile.id}
                   showOwner={stockView === "public"}
                   showPrivacy={stockView === "mine"}
+                  showActions={stockView === "mine"}
                 />
               ))
             )

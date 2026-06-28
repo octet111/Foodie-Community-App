@@ -77,7 +77,7 @@
 4. **企画**: S04/S05/S06（events/event_parts/participations、定員締切ロジック）
 5. **リマインド**: reminders生成＋send-reminders＋pg_cron — **完成（2026-06-20）**
 6. **精算**: S09（割り勘計算・確定/取消・支払チェック）— **完成（2026-06-16）**
-7. **設定・仕上げ**: S10/S11、カレンダー表示、レスポンシブ調整 — **部分完成（2026-06-21）** §10 参照。**UIブラッシュアップ（2026-06-21）** §11 参照。**機能ブラッシュアップ（2026-06-21）** §12 参照。**機能ブラッシュアップ #3（2026-06-21）** §13 参照。**機能ブラッシュアップ #4（2026-06-21）** §14 参照。残: Vercel デプロイ、全 AC E2E
+7. **設定・仕上げ**: S10/S11、カレンダー表示、レスポンシブ調整 — **部分完成（2026-06-21）** §10 参照。**UIブラッシュアップ（2026-06-21）** §11 参照。**機能ブラッシュアップ（2026-06-21）** §12 参照。**機能ブラッシュアップ #3（2026-06-21）** §13 参照。**機能ブラッシュアップ #4（2026-06-21）** §14 参照。**追補（2026-06-28）** §15 参照。残: Vercel デプロイ、全 AC E2E
 
 ## 7. 受け入れテスト
 
@@ -511,3 +511,42 @@
 |---|---|
 | E2E | `shops.spec.ts` — 店追加時メモ入力、店詳細での表示確認 |
 | 手動 | マイページでアイコンアップロード・削除、ヘッダー反映 |
+
+---
+
+## 15. フェーズ13 追補（2026-06-24〜28）
+
+### 15.1 店リスト（S07）— 公開設定・みんなの行きたい
+
+| 項目 | 内容 |
+|---|---|
+| DB | `stocks.is_private`（default false）— `20250626000001`, `20250626000002` |
+| UI | タブ「行きたい／確保できる」。行きたい内「自分／みんな」切替 |
+| 公開 | `is_private=false` のストックを他ユーザー一覧に表示（投稿者ニックネーム付き） |
+| 企画済み | 募集中/締切企画がある店は「企画済み」バッジ＋控えめ表示 |
+| 実装 | `ShopsPageClient`, `ShopStockCard`, `ShopAddModal`, `ShopDetailClient`, `getPublicStocks` |
+
+### 15.2 精算（S09）— 確定後支払・明細同期
+
+| 項目 | 内容 |
+|---|---|
+| 確定後支払 | トリガ `block_finalized_items` 改修 — `paid`/`paid_at` のみ UPDATE 許可（`20250626000003`） |
+| 明細同期 | 参加者追加後も `settlementItemsNeedSync` で再同期。精算ページ `dynamic = force-dynamic` |
+| 実装 | `settlement/page.tsx`, `settlement-data.ts`, `SettlementPageClient.tsx` |
+
+### 15.3 実績リスト（`/records`）
+
+| 項目 | 内容 |
+|---|---|
+| 変更前 | `settlements.status=finalized` の event_id を取得して一覧（一般ユーザーは RLS で空になりうる） |
+| 変更後 | `events.status = held` で一覧 |
+| DB | 既存データ backfill + 確定/取消トリガ `sync_event_status_on_settlement`（`20250628000001`） |
+| 実装 | `getCompletedEventsList()` in `events-data.ts` |
+
+### 15.4 マイページ未払い（S10）
+
+| 項目 | 内容 |
+|---|---|
+| 問題 | `settlement_items` → `settlements` 結合が RLS で一般ユーザーに遮断され未払いが常に空 |
+| 対応 | RPC `get_my_unpaid_items()`（security definer）— `20260628110036` |
+| 実装 | `getUnpaidItems()` in `me-data.ts` |

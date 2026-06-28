@@ -52,5 +52,17 @@ test.describe("shops", () => {
     await page.getByRole("button", { name: "確保できる" }).click();
     await expect(page.getByText(shopName)).toBeVisible();
     await expect(page.getByText("常連")).toBeVisible();
+
+    await page.getByRole("button", { name: "行きたい" }).click();
+    await page.getByRole("button", { name: "編集" }).click();
+    await page.getByLabel("エリア（任意）").fill("銀座・鮨");
+    await page.getByLabel("予約難易度").selectOption("months_wait");
+    await page.getByRole("button", { name: "保存" }).click();
+    await expect(page.getByText("銀座・鮨")).toBeVisible();
+    await expect(page.getByText("数ヶ月待ち")).toBeVisible();
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "削除" }).click();
+    await expect(page.getByText(shopName)).not.toBeVisible();
   });
 });
