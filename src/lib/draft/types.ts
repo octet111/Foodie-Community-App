@@ -6,6 +6,7 @@ export type DraftInputParams = {
   area?: string;
   headcount?: number;
   concept_free_text?: string;
+  shop_url?: string;
 };
 
 export type DraftPart = {
@@ -22,6 +23,9 @@ export type ShopCandidate = {
   rarity: ShopRarity;
   claim_note?: string | null;
   claim_type?: ClaimType | null;
+  url?: string | null;
+  ogp_description?: string | null;
+  source?: string;
 };
 
 export type ConceptOption = {

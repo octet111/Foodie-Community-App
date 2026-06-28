@@ -22,8 +22,18 @@ export type GeminiResult<T> =
 
 export { SchemaType, type ResponseSchema };
 
+/** ビルド時インラインを避けるため bracket 参照（Vercel 実行時 env を読む） */
+function getGeminiApiKey(): string | undefined {
+  const key =
+    process.env["GEMINI_API_KEY"] ??
+    process.env["GOOGLE_GENERATIVE_AI_API_KEY"] ??
+    process.env["GOOGLE_API_KEY"];
+  const trimmed = key?.trim();
+  return trimmed || undefined;
+}
+
 function getClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getGeminiApiKey();
   if (!apiKey) return null;
   return new GoogleGenerativeAI(apiKey);
 }
@@ -38,7 +48,8 @@ async function callOnce<T>(
     return {
       ok: false,
       code: "missing_api_key",
-      message: "GEMINI_API_KEY が設定されていません",
+      message:
+        "GEMINI_API_KEY が設定されていません。Vercel の Environment Variables を確認し、再デプロイしてください。",
     };
   }
 

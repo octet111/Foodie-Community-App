@@ -13,7 +13,7 @@ export async function proxy(request: NextRequest) {
   const { supabaseResponse, user, supabase } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/auth/")) {
+  if (pathname.startsWith("/auth/") || pathname.startsWith("/api/")) {
     return supabaseResponse;
   }
 

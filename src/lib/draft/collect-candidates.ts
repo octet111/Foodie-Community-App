@@ -126,6 +126,15 @@ export async function collectShopCandidates(
   return sortCandidates(deduped, preferHighRarity);
 }
 
+/** URL 起点店を先頭にマージ（shop_id 重複は URL 側を優先） */
+export function mergeUrlShopCandidate(
+  urlCandidate: ShopCandidate,
+  others: ShopCandidate[],
+): ShopCandidate[] {
+  const rest = others.filter((c) => c.shop_id !== urlCandidate.shop_id);
+  return sortCandidates([urlCandidate, ...rest], false);
+}
+
 export function formatCandidatesForPrompt(candidates: ShopCandidate[]): string {
   return candidates
     .map((c) => {
@@ -135,8 +144,14 @@ export function formatCandidatesForPrompt(candidates: ShopCandidate[]): string {
         `area: ${c.area ?? "未設定"}`,
         `rarity: ${c.rarity}`,
       ];
+      if (c.url) parts.push(`url: ${c.url}`);
+      if (c.ogp_description) {
+        const desc = c.ogp_description.replace(/\s+/g, " ").slice(0, 400);
+        parts.push(`page_description: ${desc}`);
+      }
       if (c.claim_note) parts.push(`claim_note: ${c.claim_note}`);
       if (c.claim_type) parts.push(`claim_type: ${c.claim_type}`);
+      if (c.source === "url") parts.push(`source: url（ユーザー指定）`);
       return `- ${parts.join(", ")}`;
     })
     .join("\n");

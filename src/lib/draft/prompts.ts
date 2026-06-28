@@ -95,6 +95,9 @@ export function buildConceptUserPrompt(
     inputParams.concept_free_text
       ? `追加条件: ${inputParams.concept_free_text}`
       : "",
+    inputParams.shop_url
+      ? `指定店リンク: ${inputParams.shop_url}（page_description を参考に、この店を中心に企画してください）`
+      : "",
     "",
     "## 候補店リスト（この shop_id のみ使用可）",
     formatCandidatesForPrompt(candidates),
@@ -102,6 +105,9 @@ export function buildConceptUserPrompt(
     `allowed_shop_ids: [${allowedIds}]`,
     "",
     "性格の異なるコンセプトを3案生成してください。recommended_shop_id は必ず allowed_shop_ids のいずれかにしてください。",
+    inputParams.shop_url
+      ? "ユーザーが URL で指定した店がある場合、少なくとも1案はその shop_id を recommended_shop_id にしてください。"
+      : "",
   ]
     .filter(Boolean)
     .join("\n");

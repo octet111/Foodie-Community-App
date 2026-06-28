@@ -7,7 +7,9 @@ import {
 } from "@/lib/draft/auth";
 import {
   collectShopCandidates,
+  mergeUrlShopCandidate,
 } from "@/lib/draft/collect-candidates";
+import { resolveShopFromUrl } from "@/lib/draft/resolve-url-shop";
 import { GEMINI_MODEL } from "@/lib/draft/constants";
 import {
   buildConceptUserPrompt,
@@ -47,7 +49,15 @@ export async function POST(request: Request) {
   }
 
   const inputParams = parsed.data;
-  const candidates = await collectShopCandidates(userId, inputParams);
+  let candidates = await collectShopCandidates(userId, inputParams);
+
+  if (inputParams.shop_url?.trim()) {
+    const resolved = await resolveShopFromUrl(userId, inputParams.shop_url.trim());
+    if (!resolved.ok) {
+      return jsonError(resolved.error, 400);
+    }
+    candidates = mergeUrlShopCandidate(resolved.candidate, candidates);
+  }
 
   if (candidates.length === 0) {
     return Response.json({
@@ -100,7 +110,10 @@ export async function POST(request: Request) {
       created_by: userId,
       status: "generated",
       generation_phase: "concept",
-      input_params: inputParams,
+      input_params: {
+        ...inputParams,
+        shop_url: inputParams.shop_url?.trim() || undefined,
+      },
       concept_options: sanitized,
       model: GEMINI_MODEL,
       raw_response: geminiResult.raw as Json,
@@ -115,7 +128,7 @@ export async function POST(request: Request) {
   const candidateRows = candidates.map((c, i) => ({
     draft_id: draft.id,
     shop_id: c.shop_id,
-    reason: c.claim_note ?? null,
+    reason: c.claim_note ?? c.ogp_description?.slice(0, 200) ?? null,
     sort_order: i + 1,
   }));
 
