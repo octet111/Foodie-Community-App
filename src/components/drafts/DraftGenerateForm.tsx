@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DRAFT_ORIGINS, type DraftOrigin } from "@/lib/draft/constants";
 import { fetchOgp } from "@/lib/ogp";
+import type { Shop } from "@/lib/shops-data";
 import { createClient } from "@/lib/supabase/client";
+import { DraftShopPickerModal } from "@/components/drafts/DraftShopPickerModal";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { SectionTitle } from "@/components/ui/SectionTitle";
@@ -19,17 +21,23 @@ const ORIGIN_LABELS: Record<DraftOrigin, string> = {
   free: "フリー検索",
 };
 
+type DraftGenerateFormProps = {
+  shops: Shop[];
+};
+
 type UrlPreview = {
   title: string;
   description: string;
   image: string;
 };
 
-export function DraftGenerateForm() {
+export function DraftGenerateForm({ shops }: DraftGenerateFormProps) {
   const router = useRouter();
   const [shopUrl, setShopUrl] = useState("");
   const [urlPreview, setUrlPreview] = useState<UrlPreview | null>(null);
   const [fetchingUrl, setFetchingUrl] = useState(false);
+  const [selectedShopIds, setSelectedShopIds] = useState<string[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [origins, setOrigins] = useState<DraftOrigin[]>(["stock", "claim", "free"]);
   const [area, setArea] = useState("");
   const [headcount, setHeadcount] = useState("");
@@ -69,11 +77,18 @@ export function DraftGenerateForm() {
     }
   }
 
+  const selectedShops = useMemo(() => {
+    const byId = new Map(shops.map((s) => [s.id, s]));
+    return selectedShopIds
+      .map((id) => byId.get(id))
+      .filter((s): s is Shop => s !== undefined);
+  }, [shops, selectedShopIds]);
+
   async function handleGenerate() {
     setError(null);
     const trimmedUrl = shopUrl.trim();
-    if (origins.length === 0 && !trimmedUrl) {
-      setError("起点を1つ以上選ぶか、店リンク（URL）を入力してください");
+    if (origins.length === 0 && !trimmedUrl && selectedShopIds.length === 0) {
+      setError("起点・店リンク・店リストからの選択のいずれか1つ以上を指定してください");
       return;
     }
 
@@ -85,6 +100,7 @@ export function DraftGenerateForm() {
         body: JSON.stringify({
           origins,
           shop_url: trimmedUrl || undefined,
+          selected_shop_ids: selectedShopIds.length ? selectedShopIds : undefined,
           area: area.trim() || undefined,
           headcount: headcount ? Number(headcount) : undefined,
           concept_free_text: conceptFreeText.trim() || undefined,
@@ -176,6 +192,37 @@ export function DraftGenerateForm() {
         </Card>
       )}
 
+      <SectionTitle>店リストから選ぶ（任意）</SectionTitle>
+      <p className="text-xs text-txt-muted">
+        登録済みの店から AI に渡す候補を指定できます（最大20件）。
+      </p>
+      <Button variant="outline" className="w-full" onClick={() => setPickerOpen(true)}>
+        店を選ぶ{selectedShopIds.length > 0 ? `（${selectedShopIds.length}件選択中）` : ""}
+      </Button>
+
+      {selectedShops.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {selectedShops.map((shop) => (
+            <Card key={shop.id} className="flex items-center gap-2">
+              <ShopThumb shop={shop} className="h-10 w-10 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-heading">{shop.name}</p>
+                <p className="text-xs text-txt-muted">{shop.area ?? "エリア未設定"}</p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 text-xs text-[#E8694F] hover:underline"
+                onClick={() =>
+                  setSelectedShopIds((prev) => prev.filter((id) => id !== shop.id))
+                }
+              >
+                外す
+              </button>
+            </Card>
+          ))}
+        </div>
+      )}
+
       <SectionTitle>候補店の起点（任意）</SectionTitle>
       <div className="flex flex-wrap gap-2">
         {DRAFT_ORIGINS.map((origin) => (
@@ -238,6 +285,14 @@ export function DraftGenerateForm() {
       <Button className="w-full" disabled={loading || fetchingUrl} onClick={handleGenerate}>
         {loading ? "コンセプト生成中…" : "コンセプトを生成"}
       </Button>
+
+      <DraftShopPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        shops={shops}
+        selectedIds={selectedShopIds}
+        onConfirm={setSelectedShopIds}
+      />
     </div>
   );
 }

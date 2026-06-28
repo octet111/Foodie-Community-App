@@ -7,6 +7,7 @@ export type DraftInputParams = {
   headcount?: number;
   concept_free_text?: string;
   shop_url?: string;
+  selected_shop_ids?: string[];
 };
 
 export type DraftPart = {

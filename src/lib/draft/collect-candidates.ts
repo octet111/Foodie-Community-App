@@ -126,6 +126,51 @@ export async function collectShopCandidates(
   return sortCandidates(deduped, preferHighRarity);
 }
 
+/** shop_id 重複を除き、先に渡した順序を保持 */
+export function dedupePreserveOrder(candidates: ShopCandidate[]): ShopCandidate[] {
+  const seen = new Set<string>();
+  const result: ShopCandidate[] = [];
+  for (const c of candidates) {
+    if (seen.has(c.shop_id)) continue;
+    seen.add(c.shop_id);
+    result.push(c);
+  }
+  return result;
+}
+
+/** 店リストから ID 指定で候補を取得（選択順を保持） */
+export async function collectShopsByIds(shopIds: string[]): Promise<ShopCandidate[]> {
+  if (!shopIds.length) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("shops")
+    .select("id, name, area, rarity, url, ogp_description")
+    .in("id", shopIds);
+
+  if (!data) return [];
+
+  const byId = new Map<string, ShopCandidate>();
+  for (const shop of data) {
+    byId.set(shop.id, {
+      shop_id: shop.id,
+      name: shop.name,
+      area: shop.area,
+      rarity: shop.rarity as ShopRarity,
+      url: shop.url,
+      ogp_description: shop.ogp_description,
+      source: "selected",
+    });
+  }
+
+  const result: ShopCandidate[] = [];
+  for (const id of shopIds) {
+    const candidate = byId.get(id);
+    if (candidate) result.push(candidate);
+  }
+  return result;
+}
+
 /** URL 起点店を先頭にマージ（shop_id 重複は URL 側を優先） */
 export function mergeUrlShopCandidate(
   urlCandidate: ShopCandidate,
@@ -152,6 +197,7 @@ export function formatCandidatesForPrompt(candidates: ShopCandidate[]): string {
       if (c.claim_note) parts.push(`claim_note: ${c.claim_note}`);
       if (c.claim_type) parts.push(`claim_type: ${c.claim_type}`);
       if (c.source === "url") parts.push(`source: url（ユーザー指定）`);
+      if (c.source === "selected") parts.push(`source: selected（店リストから選択）`);
       return `- ${parts.join(", ")}`;
     })
     .join("\n");

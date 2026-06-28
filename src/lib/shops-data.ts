@@ -191,6 +191,18 @@ export async function getShopById(id: string): Promise<Shop | null> {
   return data;
 }
 
+/** AI企画生成の店選択用（店リスト登録済みの全店） */
+export async function getShopListForPicker(): Promise<Shop[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shops")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (error || !data) return [];
+  return data;
+}
+
 export async function getShopClaims(shopId: string): Promise<ClaimItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

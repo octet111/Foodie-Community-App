@@ -7,6 +7,8 @@ import {
 } from "@/lib/draft/auth";
 import {
   collectShopCandidates,
+  collectShopsByIds,
+  dedupePreserveOrder,
   mergeUrlShopCandidate,
 } from "@/lib/draft/collect-candidates";
 import { resolveShopFromUrl } from "@/lib/draft/resolve-url-shop";
@@ -49,7 +51,17 @@ export async function POST(request: Request) {
   }
 
   const inputParams = parsed.data;
-  let candidates = await collectShopCandidates(userId, inputParams);
+  const selectedIds = inputParams.selected_shop_ids ?? [];
+  const [pickedShops, originCandidates] = await Promise.all([
+    collectShopsByIds(selectedIds),
+    collectShopCandidates(userId, inputParams),
+  ]);
+
+  if (selectedIds.length > 0 && pickedShops.length !== selectedIds.length) {
+    return jsonError("選択した店の一部が見つかりません", 400);
+  }
+
+  let candidates = dedupePreserveOrder([...pickedShops, ...originCandidates]);
 
   if (inputParams.shop_url?.trim()) {
     const resolved = await resolveShopFromUrl(userId, inputParams.shop_url.trim());
@@ -63,7 +75,7 @@ export async function POST(request: Request) {
     return Response.json({
       needs_shops: true,
       message:
-        "候補店がありません。行きたい店をストックするか、確保宣言を登録してから再度お試しください。",
+        "候補店がありません。店リストから選ぶか、行きたい店をストックしてから再度お試しください。",
     });
   }
 
@@ -113,6 +125,9 @@ export async function POST(request: Request) {
       input_params: {
         ...inputParams,
         shop_url: inputParams.shop_url?.trim() || undefined,
+        selected_shop_ids: inputParams.selected_shop_ids?.length
+          ? inputParams.selected_shop_ids
+          : undefined,
       },
       concept_options: sanitized,
       model: GEMINI_MODEL,

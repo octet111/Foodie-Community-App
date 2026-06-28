@@ -98,6 +98,9 @@ export function buildConceptUserPrompt(
     inputParams.shop_url
       ? `指定店リンク: ${inputParams.shop_url}（page_description を参考に、この店を中心に企画してください）`
       : "",
+    inputParams.selected_shop_ids?.length
+      ? `店リストから選択: ${inputParams.selected_shop_ids.length}件（選択店を優先して企画してください）`
+      : "",
     "",
     "## 候補店リスト（この shop_id のみ使用可）",
     formatCandidatesForPrompt(candidates),
