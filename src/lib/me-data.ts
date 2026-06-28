@@ -164,38 +164,15 @@ export async function getUpcomingParticipations(
   );
 }
 
-export async function getUnpaidItems(userId: string): Promise<UnpaidItem[]> {
+export async function getUnpaidItems(_userId: string): Promise<UnpaidItem[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("settlement_items")
-    .select(
-      `
-      amount,
-      settlement:settlements(
-        event:events(id, title, deleted_at)
-      )
-    `,
-    )
-    .eq("user_id", userId)
-    .eq("paid", false);
+  const { data, error } = await supabase.rpc("get_my_unpaid_items");
 
-  if (error || !data) return [];
+  if (error || !data || !Array.isArray(data)) return [];
 
-  const items: UnpaidItem[] = [];
-  for (const row of data) {
-    const settlement = row.settlement as {
-      event: { id: string; title: string; deleted_at: string | null } | null;
-    } | null;
-    const event = settlement?.event;
-    if (!event || event.deleted_at) continue;
-    items.push({
-      eventId: event.id,
-      eventTitle: event.title,
-      amount: row.amount,
-    });
-  }
-
-  return items.sort((a, b) => a.eventTitle.localeCompare(b.eventTitle, "ja"));
+  return (data as UnpaidItem[]).slice().sort((a, b) =>
+    a.eventTitle.localeCompare(b.eventTitle, "ja"),
+  );
 }
 
 export async function getMyStocks(userId: string): Promise<MyStockRow[]> {
