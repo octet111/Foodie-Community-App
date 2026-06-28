@@ -266,22 +266,23 @@ photos（フェーズ2・アルバム）
 
 ### 企画一覧（PC）
 
-
+![企画一覧](docs/screenshots/02-events-list.png)
 
 ### 企画詳細
 
-
+![企画詳細](docs/screenshots/03-event-detail.png)
 
 ### 店リスト
 
-
+![店リスト](docs/screenshots/04-shops-list.png)
 
 ### 精算
 
+![精算](docs/screenshots/07-settlement.png)
 
+### 企画一覧（モバイル）
 
-### 企画一覧（モバイル）  
-
+![企画一覧（モバイル）](docs/screenshots/08-events-mobile.png)
 
 ## 実装進捗
 
