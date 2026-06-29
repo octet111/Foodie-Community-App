@@ -50,6 +50,15 @@
 
 ※ 参加者の偏り（課題⑨）は機能化せず、運用ルールで対応。
 
+## デモ環境
+
+**URL:** [https://foodie-community-app.vercel.app](https://foodie-community-app.vercel.app)
+
+| ニックネーム | ロール | メール | パスワード |
+|---|---|---|---|
+| ダミー会員 | 一般 (member) | dummy-member@foodie-test.local | 111111 |
+| ダミー管理 | 管理者 (admin) | dummy-admin@foodie-test.local | 111111 |
+
 ## 機能概要
 
 
